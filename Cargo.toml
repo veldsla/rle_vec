@@ -4,5 +4,3 @@ version = "0.1.0"
 authors = ["Arno Velds <avelds@gmail.com>"]
 
 [dependencies]
-rand = "*"
-

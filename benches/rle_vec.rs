@@ -1,7 +1,6 @@
 #![feature(test)]
 
 extern crate test;
-extern crate rand;
 extern crate rle_vec;
 
 use test::Bencher;
@@ -29,7 +28,7 @@ fn test_vec() -> Vec<u64> {
 
 #[bench]
 fn create_1000_runs_length_5(b: &mut Bencher) {
-    b.iter(|| { 
+    b.iter(|| {
         let r = test_rle_vec();
         assert_eq!(r.len(), 5000);
     });
@@ -37,7 +36,7 @@ fn create_1000_runs_length_5(b: &mut Bencher) {
 
 #[bench]
 fn create_vec_1000_runs_length_5(b: &mut Bencher) {
-    b.iter(|| { 
+    b.iter(|| {
         let r = test_vec();
         assert_eq!(r.len(), 5000);
     });
@@ -47,7 +46,7 @@ fn create_vec_1000_runs_length_5(b: &mut Bencher) {
 #[bench]
 fn index_100_from_test(b: &mut Bencher) {
     let r = test_rle_vec();
-    b.iter(|| { 
+    b.iter(|| {
         for i in 800..900 {
             let _ = r[i];
         }
@@ -57,7 +56,7 @@ fn index_100_from_test(b: &mut Bencher) {
 #[bench]
 fn index_100_from_vec(b: &mut Bencher) {
     let r = test_vec();
-    b.iter(|| { 
+    b.iter(|| {
         for i in 800..900 {
             let _ = r[i];
         }
@@ -65,30 +64,60 @@ fn index_100_from_vec(b: &mut Bencher) {
 }
 
 #[bench]
-fn split_100_runs_in_test(b: &mut Bencher) {
-    b.iter(|| { 
+fn set_100_with_split(b: &mut Bencher) {
+    b.iter(|| {
         let mut r = test_rle_vec();
         let mut i = 2;
         let mut v = 0;
-        while i < r.len() {
+        for _ in 0..100 {
             r.set(i, v);
-            i +=50;
-            v +=1;
+            i += 50;
+            v += 10;
+        }
+        assert_eq!(r.len(), 5000);
+        assert_eq!(r.n_runs(), 1200);
+    });
+}
+
+#[bench]
+fn set_100_without_split(b: &mut Bencher) {
+    b.iter(|| {
+        let mut r = test_rle_vec();
+        let mut i = 2;
+        let mut v = 1;
+        for _ in 0..100 {
+            r.set(i, v);
+            i += 50;
+            v += 10;
+        }
+        assert_eq!(r.len(), 5000);
+        assert_eq!(r.n_runs(), 1000);
+    });
+}
+
+#[bench]
+fn set_100_vec(b: &mut Bencher) {
+    b.iter(|| {
+        let mut r = test_vec();
+        let mut i = 2;
+        let mut v = 1;
+        for _ in 0..100 {
+            r[i] = v;
+            i += 50;
+            v += 10;
         }
     });
 }
 
 #[bench]
 fn insert_100_with_split(b: &mut Bencher) {
-    b.iter(|| { 
+    b.iter(|| {
         let mut r = test_rle_vec();
         let mut i = 2;
         let v = 0;
-        let mut a = 0;
-        while a < 100 {
+        for _ in 0..100 {
             r.insert(i, v);
             i += 50 + 1;
-            a += 1;
         }
         assert_eq!(r.len(), 5100);
         assert_eq!(r.n_runs(), 1200);
@@ -97,33 +126,29 @@ fn insert_100_with_split(b: &mut Bencher) {
 
 #[bench]
 fn insert_100_without_split(b: &mut Bencher) {
-    b.iter(|| { 
+    b.iter(|| {
         let mut r = test_rle_vec();
-        let mut i = 0;
-        let mut v = 0;
-        let mut a = 0;
-        while a < 100 {
+        let mut i = 2;
+        let mut v = 1;
+        for _ in 0..100 {
             r.insert(i, v);
             i += 50 + 1;
             v += 10;
-            a += 1;
         }
         assert_eq!(r.len(), 5100);
-        assert_eq!(r.n_runs(), 1001);
+        assert_eq!(r.n_runs(), 1000);
     });
 }
 
 #[bench]
 fn insert_100_vec(b: &mut Bencher) {
-    b.iter(|| { 
+    b.iter(|| {
         let mut r = test_vec();
         let mut i = 2;
         let mut v = 0;
-        let mut a = 0;
-        while a < 100 {
+        for _ in 0..100 {
             r.insert(i, v);
             i += 50 + 1;
-            a += 1;
             v += 10;
         }
         assert_eq!(r.len(), 5100);
