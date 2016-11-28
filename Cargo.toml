@@ -7,7 +7,7 @@ homepage = "https://github.com/veldsla/rle_vec"
 documentation = "https://docs.rs/rle_vec/"
 keywords = ["rle", "run length encoding", "vec", "vector", "rlevec"]
 license = "MIT"
-description """
+description = """
 A vector like struct that stores data as runs of identical values. Useful for storing sparse data.
 """
 
