@@ -9,7 +9,7 @@
 //!
 //!         |push|index   |set with breaking a run|set without breaking a run|insert with breaking a run|insert without breaking a run|
 //! --------|----|--------|-----------------------|--------------------------|--------------------------|-----------------------------|
-//! `RleVec`|O(1)|O(log n)|O((log n) + 2n)        |O(log n)                  |O((log n) + 2n)           |O(log n)                     |
+//! `RleVec`|O(1)|O(log n)|O((log n) + 2n)        |O(log n)                  |O((log n) + 2n)           |O((log n) + n)               |
 //! `Vec`   |O(1)|O(1)    |O(1)*                  |                          |O(n)                      |                             |
 //!
 //! *\*Benchmarks show that setting `vec[idx] = value` is a lot slower than getting `vec[idx]`*
@@ -398,7 +398,6 @@ mod tests {
         rle.set(2, 1);
         assert_eq!((0..10).map(|i| rle[i]).collect::<Vec<_>>(), vec![2,1,1,1,2,2,5,3,3,2]);
         assert_eq!(rle.n_runs(), 6);
-
     }
 
     #[test]
@@ -441,8 +440,6 @@ mod tests {
         assert_eq!(rle.iter().cloned().collect::<Vec<_>>(), vec![0,2,0,1,4,1,1,1,1,2,2,3]);
         rle.insert(8,8);
         assert_eq!(rle.iter().cloned().collect::<Vec<_>>(), vec![0,2,0,1,4,1,1,1,8,1,2,2,3]);
-
-
     }
 
     #[test]
