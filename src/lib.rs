@@ -14,16 +14,23 @@
 //!
 //! *\*Benchmarks show that setting `vec[idx] = value` is a lot slower than getting `vec[idx]`*
 //!
-use std::iter::FromIterator;
+use std::iter::{FromIterator, Sum};
 use std::ops::Index;
+use std::ops::Add;
 
 #[derive(Debug)]
 pub struct RleVec<T> where T: Eq {
-    runs: Vec<Run<T>>,
+    runs: Vec<StoredRun<T>>,
 }
 
 #[derive(Debug)]
-struct Run<T> where T: Eq {
+pub struct Run<T> where T: Eq {
+    pub value: T,
+    pub length: usize
+}
+
+#[derive(Debug)]
+struct StoredRun<T> where T: Eq {
     value: T,
     end: usize
 }
@@ -126,7 +133,7 @@ impl<T> RleVec<T> where T: Eq {
             0
         };
 
-        self.runs.push(Run { value: value, end: end });
+        self.runs.push(StoredRun { value: value, end: end });
     }
 
     /// Add single value n times to the RleVec
@@ -144,7 +151,12 @@ impl<T> RleVec<T> where T: Eq {
             n - 1
         };
 
-        self.runs.push(Run { value: value, end: end });
+        self.runs.push(StoredRun { value: value, end: end });
+    }
+
+    /// Use the provided `Run` to extend the RleVec
+    pub fn push_run(&mut self, run: Run<T>) {
+        self.push_n(run.value, run.length)
     }
 
     /// Modify the RleVec at index. This can result in the breaking of a run and therefore be an
@@ -183,10 +195,10 @@ impl<T> RleVec<T> where T: Eq {
                 if self.runs[p-1].value == value {
                     self.runs[p-1].end += 1;
                 } else {
-                    self.runs.insert(p, Run { value: value, end: start });
+                    self.runs.insert(p, StoredRun { value: value, end: start });
                 }
             } else {
-                self.runs.insert(0, Run { value: value, end: 0 });
+                self.runs.insert(0, StoredRun { value: value, end: 0 });
             }
         } else if index == end {
             //decrease current run length
@@ -195,7 +207,7 @@ impl<T> RleVec<T> where T: Eq {
             //compare to next run
             if p < self.runs.len() - 1 && self.runs[p+1].value == value {
             } else {
-                self.runs.insert(p+1, Run {value: value, end: end});
+                self.runs.insert(p+1, StoredRun {value: value, end: end});
             }
         } else {
             //split current run
@@ -203,8 +215,8 @@ impl<T> RleVec<T> where T: Eq {
             let v = self.runs[p].value.clone();
             //this might be more efficient using split_off, push and extend?
             //this implementation has complexity O((log n) + 2n)
-            self.runs.insert(p + 1, Run { value: value, end: index });
-            self.runs.insert(p + 2, Run { value: v, end: end });
+            self.runs.insert(p + 1, StoredRun { value: value, end: index });
+            self.runs.insert(p + 2, StoredRun { value: v, end: end });
         }
     }
 
@@ -233,14 +245,14 @@ impl<T> RleVec<T> where T: Eq {
             if p > 0 && self.runs[p-1].value == value {
                 self.runs[p-1].end += 1;
             } else {
-                self.runs.insert(p, Run { value: value, end: index });
+                self.runs.insert(p, StoredRun { value: value, end: index });
             }
         } else {
             //split current run
             self.runs[p].end = index - 1;
             let v = self.runs[p].value.clone();
-            self.runs.insert(p + 1, Run { value: value, end: index });
-            self.runs.insert(p + 2, Run { value: v, end: end + 1 });
+            self.runs.insert(p + 1, StoredRun { value: value, end: index });
+            self.runs.insert(p + 2, StoredRun { value: v, end: end + 1 });
         }
     }
 
@@ -288,6 +300,15 @@ impl<T> RleVec<T> where T: Eq {
         }
     }
 
+    /// Returns an iterator that can be used to iterate over the runs in RleVec.
+    pub fn iter_runs(&self) -> RunIterator<T> {
+        RunIterator {
+            rle: self,
+            pos: 0,
+            last_end: 0
+        }
+    }
+
     fn index_pos(&self, index: usize) -> usize {
         match self.runs.binary_search_by(|probe| probe.end.cmp(&index)) {
             Ok(p) => p,
@@ -314,6 +335,27 @@ impl<T> Index<usize> for RleVec<T> where T: Eq {
     }
 }
 
+impl<T> FromIterator<T> for RleVec<T> where T: Eq {
+    fn from_iter<I: IntoIterator<Item=T>>(iter: I) -> Self {
+        let mut c = RleVec::new();
+        for i in iter {
+            c.push(i);
+        }
+        c
+    }
+}
+
+impl<T> FromIterator<Run<T>> for RleVec<T> where T: Eq {
+    fn from_iter<I: IntoIterator<Item=Run<T>>>(iter: I) -> Self {
+        let mut c = RleVec::new();
+        for i in iter {
+            c.push_run(i);
+        }
+        c
+    }
+}
+
+
 pub struct RleVecIterator<'a, T: 'a + Eq> {
     rle: &'a RleVec<T>,
     pos: usize,
@@ -324,7 +366,7 @@ pub struct RleVecIterator<'a, T: 'a + Eq> {
 impl<'a, T: 'a +  Eq> Iterator for RleVecIterator<'a, T> {
     type Item = &'a T;
 
-    fn next(&mut self) -> Option<&'a T> {
+    fn next(&mut self) -> Option<Self::Item> {
         if self.remaining == 0 {
             if !self.rle.is_empty() && self.pos < self.rle.runs.len() - 1 {
                 self.pos += 1;
@@ -347,13 +389,27 @@ impl<'a, T: 'a +  Eq> Iterator for RleVecIterator<'a, T> {
     }
 }
 
-impl<T> FromIterator<T> for RleVec<T> where T: Eq {
-    fn from_iter<I: IntoIterator<Item=T>>(iter: I) -> Self {
-        let mut c = RleVec::new();
-        for i in iter {
-            c.push(i);
+pub struct RunIterator<'a, T:'a + Eq> {
+    rle: &'a RleVec<T>,
+    pos: usize,
+    last_end: usize
+}
+
+impl<'a, T: 'a +  Eq> Iterator for RunIterator<'a, T> {
+    type Item = Run<&'a T>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.pos < self.rle.runs.len() {
+            let ref r = self.rle.runs[self.pos];
+            let length = r.end - self.last_end + 1;
+            self.pos += 1;
+            self.last_end = r.end + 1;
+            Some(Run {
+                value: &r.value,
+                length: length })
+        } else {
+            None
         }
-        c
     }
 }
 
@@ -374,9 +430,15 @@ mod tests {
         rle.push(3);
         rle.push(3);
         rle.push(4);
-
         assert_eq!(rle.len(), 10);
         assert_eq!(rle.n_runs(), 4);
+
+        rle.push_n(4,3);
+        assert_eq!(rle.len(), 13);
+        assert_eq!(rle.n_runs(), 4);
+        rle.push_run(Run {value: 5, length: 3});
+        assert_eq!(rle.len(), 16);
+        assert_eq!(rle.n_runs(), 5);
     }
 
     #[test]
@@ -460,7 +522,7 @@ mod tests {
 
     #[test]
     fn iterators() {
-        let v = vec![0,0,0,1,1,1,1,1,1,1,3,3,1,0,99,99,9];
+        let v = vec![0,0,0,1,1,1,1,1,1,1,3,3,123,0,90,90,99];
         let rle = v.iter().cloned().collect::<RleVec<_>>();
         assert_eq!((0..v.len()).map(|i| rle[i]).collect::<Vec<_>>(), v);
         assert_eq!(rle.len(),17);
@@ -469,8 +531,27 @@ mod tests {
         assert_eq!(RleVec::<i64>::new().iter().next(), None);
 
         let v2 = (0..100).collect::<Vec<usize>>();
-        let rle = v2.iter().cloned().collect::<RleVec<_>>();
-        assert_eq!(rle.iter().cloned().collect::<Vec<_>>(), v2);
+        let rle2 = v2.iter().cloned().collect::<RleVec<_>>();
+        assert_eq!(rle2.iter().cloned().collect::<Vec<_>>(), v2);
+
+        assert_eq!(rle.iter().max(), Some(&123));
+        assert_eq!(rle.iter().min(), Some(&0));
+        assert_eq!(rle.iter().skip(13).max(), Some(&99));
+        assert_eq!(rle.iter().skip(13).min(), Some(&0));
+        assert_eq!(rle.iter().skip(13).take(2).max(), Some(&90));
+        assert_eq!(rle.iter().skip(13).take(2).min(), Some(&0));
+
+        //runiterators
+        assert_eq!(rle.iter_runs().map(|r| r.value).collect::<Vec<_>>(), vec![&0,&1,&3,&123,&0,&90,&99]);
+        assert_eq!(rle.iter_runs().map(|r| r.length).collect::<Vec<_>>(), vec![3,7,2,1,1,2,1]);
+
+        let mut copy = RleVec::new();
+        for r in rle.iter_runs() {
+            copy.push_n(r.value.clone(), r.length);
+        }
+        assert_eq!(copy.iter().cloned().collect::<Vec<_>>(), v);
+        let copy2: RleVec<_> = rle.iter_runs().map(|r| Run { value: r.value.clone(), length: r.length }).collect();
+        assert_eq!(copy2.iter().cloned().collect::<Vec<_>>(), v);
     }
 
     #[test]
