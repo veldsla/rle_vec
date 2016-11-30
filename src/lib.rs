@@ -14,9 +14,8 @@
 //!
 //! *\*Benchmarks show that setting `vec[idx] = value` is a lot slower than getting `vec[idx]`*
 //!
-use std::iter::{FromIterator, Sum};
+use std::iter::FromIterator;
 use std::ops::Index;
-use std::ops::Add;
 
 #[derive(Debug)]
 pub struct RleVec<T> where T: Eq {
