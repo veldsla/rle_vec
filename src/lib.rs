@@ -337,6 +337,14 @@ impl<'a, T: 'a +  Eq> Iterator for RleVecIterator<'a, T> {
         self.index += 1;
         Some(&self.rle.runs[self.pos].value)
     }
+
+    fn max(self) -> Option<Self::Item> where Self::Item: Ord {
+        self.rle.runs[self.pos..].iter().map(|r| &r.value).max()
+    }
+
+    fn min(self) -> Option<Self::Item> where Self::Item: Ord {
+        self.rle.runs[self.pos..].iter().map(|r| &r.value).min()
+    }
 }
 
 impl<T> FromIterator<T> for RleVec<T> where T: Eq {
