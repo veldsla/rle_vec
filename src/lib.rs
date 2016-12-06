@@ -294,7 +294,7 @@ impl<T> RleVec<T> where T: Eq {
         RleVecIterator {
             rle: self,
             pos: 0,
-            index: 0,
+            //index: 0,
             remaining: if self.is_empty() { 0 } else { self.runs[0].end + 1 }
         }
     }
@@ -358,7 +358,7 @@ impl<T> FromIterator<Run<T>> for RleVec<T> where T: Eq {
 pub struct RleVecIterator<'a, T: 'a + Eq> {
     rle: &'a RleVec<T>,
     pos: usize,
-    index: usize,
+    //index: usize,
     remaining: usize
 }
 
@@ -367,16 +367,36 @@ impl<'a, T: 'a +  Eq> Iterator for RleVecIterator<'a, T> {
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.remaining == 0 {
-            if !self.rle.is_empty() && self.pos < self.rle.runs.len() - 1 {
-                self.pos += 1;
-                self.remaining = self.rle.runs[self.pos].end - self.rle.runs[self.pos - 1].end;
-            } else {
+            if !self.next_run() {
                 return None;
             }
         }
         self.remaining -= 1;
-        self.index += 1;
+        //self.index += 1;
         Some(&self.rle.runs[self.pos].value)
+    }
+
+    fn nth(&mut self, mut n: usize) -> Option<Self::Item> {
+        if n == 0 {
+            return self.next();
+        }
+        println!("nth: {}",n);
+        if n < self.remaining {
+            //self.index += n;
+            self.remaining -= n;
+            return Some(&self.rle.runs[self.pos].value);
+        }
+        loop {
+            //self.index += self.remaining;
+            n -= self.remaining;
+            println!("nth loop: {}",n);
+            if !self.next_run() {
+                return None;
+            } else if n < self.remaining {
+                self.remaining -= n;
+                return self.next(); //Some(&self.rle.runs[self.pos].value);
+            }
+        }
     }
 
     fn max(self) -> Option<Self::Item> where Self::Item: Ord {
@@ -385,6 +405,19 @@ impl<'a, T: 'a +  Eq> Iterator for RleVecIterator<'a, T> {
 
     fn min(self) -> Option<Self::Item> where Self::Item: Ord {
         self.rle.runs[self.pos..].iter().map(|r| &r.value).min()
+    }
+}
+
+impl<'a, T: 'a +  Eq> RleVecIterator<'a, T> {
+    fn next_run(&mut self) -> bool {
+        if !self.rle.is_empty() && self.pos < self.rle.runs.len() - 1 {
+            self.pos += 1;
+            self.remaining = self.rle.runs[self.pos].end - self.rle.runs[self.pos - 1].end;
+            true
+        } else {
+            self.remaining = 0;
+            false
+        }
     }
 }
 
@@ -532,6 +565,18 @@ mod tests {
         let v2 = (0..100).collect::<Vec<usize>>();
         let rle2 = v2.iter().cloned().collect::<RleVec<_>>();
         assert_eq!(rle2.iter().cloned().collect::<Vec<_>>(), v2);
+        assert_eq!(rle2.iter().skip(0).cloned().collect::<Vec<_>>(), v2);
+
+        assert_eq!(rle2.iter().nth(0), Some(&0));
+        assert_eq!(rle2.iter().nth(5), Some(&5));
+        assert_eq!(rle2.iter().nth(99), Some(&99));
+        assert_eq!(rle2.iter().nth(100), None);
+        let mut it = rle2.iter();
+        it.nth(0);
+        assert_eq!(it.nth(0), Some(&1));
+
+        assert_eq!(rle.iter().skip(2).next(), Some(&0));
+        assert_eq!(rle.iter().skip(3).next(), Some(&1));
 
         assert_eq!(rle.iter().max(), Some(&123));
         assert_eq!(rle.iter().min(), Some(&0));
