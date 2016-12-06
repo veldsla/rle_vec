@@ -14,21 +14,23 @@
 //!
 //! *\*Benchmarks show that setting `vec[idx] = value` is a lot slower than getting `vec[idx]`*
 //!
+extern crate rustc_serialize;
+
 use std::iter::FromIterator;
 use std::ops::Index;
 
-#[derive(Debug)]
+#[derive(Debug, RustcEncodable, RustcDecodable)]
 pub struct RleVec<T> where T: Eq {
     runs: Vec<StoredRun<T>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, RustcEncodable, RustcDecodable)]
 pub struct Run<T> where T: Eq {
     pub value: T,
     pub length: usize
 }
 
-#[derive(Debug)]
+#[derive(Debug, RustcEncodable, RustcDecodable)]
 struct StoredRun<T> where T: Eq {
     value: T,
     end: usize
