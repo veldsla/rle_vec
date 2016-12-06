@@ -6,7 +6,7 @@ Put this in your `Cargo.toml`:
 
 ```toml
 [dependencies]
-rle_vec = "0.1"
+rle_vec = "0.2"
 ```
 
 Then put this in your crate root:
