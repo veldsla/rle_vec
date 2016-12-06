@@ -1,6 +1,12 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## [0.2.1] - 2016-12-06
+### Added
+* Implemented `nth` on `RleVecIterator`. The will speed up iterator functions like
+  `nth` and `skip` is large runs are present
+* Derived `RustcEncodable` and `RustcDecodable` on the structs so the data can be serialized
+
 ## [0.2.0] - 2016-11-30
 ### Added
 * Made a public type `Run`.
