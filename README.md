@@ -34,7 +34,7 @@ where n is equal to the number of runs, not the length of a comparable Vec.
 
  The `RleVec` struct handles like a normal vector and supports a subset from the `Vec` methods.
 
- # Examples:
+## Examples:
  ```rust
  use rle_vec::RleVec;
  let mut rle = RleVec::new();
@@ -77,7 +77,7 @@ where n is equal to the number of runs, not the length of a comparable Vec.
  Not all methods implemented on `Vec` are implemented for `RleVec`. All methods returning a slice
  cannot work for `RleVec`.
 
- ## Benchmarks
+## Benchmarks
  Cargo bench can be used to compare the real life difference of get/set/insert operations on a `Vec`
  and `RleVec`. The test data is a vector of length 5000 that contains 1000 runs of length 5.
  
