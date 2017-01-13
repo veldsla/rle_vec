@@ -382,21 +382,17 @@ impl<'a, T: 'a +  Eq> Iterator for RleVecIterator<'a, T> {
         if n == 0 {
             return self.next();
         }
-        println!("nth: {}",n);
         if n < self.remaining {
-            //self.index += n;
             self.remaining -= n;
             return Some(&self.rle.runs[self.pos].value);
         }
         loop {
-            //self.index += self.remaining;
             n -= self.remaining;
-            println!("nth loop: {}",n);
             if !self.next_run() {
                 return None;
             } else if n < self.remaining {
                 self.remaining -= n;
-                return self.next(); //Some(&self.rle.runs[self.pos].value);
+                return self.next();
             }
         }
     }
@@ -411,6 +407,7 @@ impl<'a, T: 'a +  Eq> Iterator for RleVecIterator<'a, T> {
 }
 
 impl<'a, T: 'a +  Eq> RleVecIterator<'a, T> {
+    //attempt to move to the next run
     fn next_run(&mut self) -> bool {
         if !self.rle.is_empty() && self.pos < self.rle.runs.len() - 1 {
             self.pos += 1;
@@ -576,6 +573,10 @@ mod tests {
         let mut it = rle2.iter();
         it.nth(0);
         assert_eq!(it.nth(0), Some(&1));
+
+        assert_eq!(rle.iter().nth(3), Some(&1));
+        assert_eq!(rle.iter().nth(14), Some(&90));
+        assert_eq!(rle.iter().nth(15), Some(&90));
 
         assert_eq!(rle.iter().skip(2).next(), Some(&0));
         assert_eq!(rle.iter().skip(3).next(), Some(&1));
