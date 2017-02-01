@@ -1,6 +1,11 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## [0.2.2] - 2017-02-01
+### Fixed
+* Removed a couple of println! statements.
+* Added crate category
+
 ## [0.2.1] - 2016-12-06
 ### Added
 * Implemented `nth` on `RleVecIterator`. The will speed up iterator functions like
