@@ -7,10 +7,10 @@
 //! in a O(log n) complexity versus O(1) for a normal vector. Other complexities are in the table
 //! where n is equal to the number of runs, not the length of a comparable Vec.
 //!
-//!         |push|index   |set with breaking a run|set without breaking a run|insert with breaking a run|insert without breaking a run|
-//! --------|----|--------|-----------------------|--------------------------|--------------------------|-----------------------------|
-//! `RleVec`|O(1)|O(log n)|O((log n) + 2n)        |O(log n)                  |O((log n) + 2n)           |O((log n) + n)               |
-//! `Vec`   |O(1)|O(1)    |O(1)*                  |                          |O(n)                      |                             |
+//! |        |push|index   |set with breaking a run|set without breaking a run|insert with breaking a run|insert without breaking a run|
+//! |--------|----|--------|-----------------------|--------------------------|--------------------------|-----------------------------|
+//! |`RleVec`|O(1)|O(log&nbsp;n)|O((log&nbsp;n)&nbsp;+&nbsp;2n)|O(log&nbsp;n)|O((log&nbsp;n)&nbsp;+&nbsp;2n)|O((log&nbsp;n)&nbsp;+&nbsp;n)|
+//! |`Vec`|O(1)|O(1)|O(1)*| |O(n)| |
 //!
 //! *\*Benchmarks show that setting `vec[idx] = value` is a lot slower than getting `vec[idx]`*
 //!
