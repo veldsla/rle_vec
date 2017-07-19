@@ -113,23 +113,23 @@ use std::ops::Index;
 /// can be slow. For this reason, it is recommended to use `RleVec::with_capacity`
 /// whenever possible to specify how big the rle_vector is expected to get.
 #[derive(Debug)]
-pub struct RleVec<T> where T: Eq {
+pub struct RleVec<T: Eq> {
     runs: Vec<StoredRun<T>>,
 }
 
 #[derive(Debug)]
-pub struct Run<T> where T: Eq {
+pub struct Run<T: Eq> {
     pub value: T,
     pub length: usize
 }
 
 #[derive(Debug)]
-struct StoredRun<T> where T: Eq {
+struct StoredRun<T: Eq> {
     value: T,
     end: usize
 }
 
-impl<T> RleVec<T> where T: Eq {
+impl<T: Eq> RleVec<T> {
     /// Constructs a new empty `RleVec<T>`.
     ///
     /// The rle_vector will not allocate until elements are pushed onto it.
@@ -170,27 +170,6 @@ impl<T> RleVec<T> where T: Eq {
     /// ```
     pub fn with_capacity(capacity: usize) -> RleVec<T> {
         RleVec { runs: Vec::with_capacity(capacity) }
-    }
-
-    /// Constructs a new `RleVec<T>` from a Vec<T>.
-    /// This consumes the `Vec<T>`
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use rle_vec::RleVec;
-    /// let v = vec![0,0,0,1,1,99,9];
-    /// let rle = RleVec::from_vec(v);
-    ///
-    /// assert_eq!(rle[3], 1);
-    /// ```
-    pub fn from_vec(v: Vec<T>) -> RleVec<T> {
-        let mut rle = RleVec::<T>::new();
-
-        for value in v {
-            rle.push(value)
-        }
-        rle
     }
 
     /// Appends an element to the back of a collection.
@@ -481,7 +460,27 @@ impl<T> RleVec<T> where T: Eq {
     }
 }
 
-impl<T> Index<usize> for RleVec<T> where T: Eq {
+impl<T: Eq + Clone> RleVec<T> {
+    /// Constructs a new `RleVec<T>` from a Vec<T>.
+    /// This consumes the `Vec<T>`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use rle_vec::RleVec;
+    /// let rle = RleVec::from_slice(&[0, 0, 0, 1, 1, 99, 9]);
+    /// assert_eq!(rle[3], 1);
+    /// ```
+    pub fn from_slice(slice: &[T]) -> RleVec<T> {
+        let mut rle = RleVec::new();
+        for value in slice.iter().cloned() {
+            rle.push(value)
+        }
+        rle
+    }
+}
+
+impl<T: Eq> Index<usize> for RleVec<T> {
     type Output = T;
     fn index(&self, index: usize) -> &T {
         let p = self.index_pos(index);
@@ -489,17 +488,17 @@ impl<T> Index<usize> for RleVec<T> where T: Eq {
     }
 }
 
-impl<T> FromIterator<T> for RleVec<T> where T: Eq {
+impl<T: Eq> FromIterator<T> for RleVec<T> {
     fn from_iter<I: IntoIterator<Item=T>>(iter: I) -> Self {
-        let mut c = RleVec::new();
+        let mut rle = RleVec::new();
         for i in iter {
-            c.push(i);
+            rle.push(i);
         }
-        c
+        rle
     }
 }
 
-impl<T> FromIterator<Run<T>> for RleVec<T> where T: Eq {
+impl<T: Eq> FromIterator<Run<T>> for RleVec<T> {
     fn from_iter<I: IntoIterator<Item=Run<T>>>(iter: I) -> Self {
         let mut c = RleVec::new();
         for i in iter {
@@ -508,7 +507,6 @@ impl<T> FromIterator<Run<T>> for RleVec<T> where T: Eq {
         c
     }
 }
-
 
 pub struct RleVecIterator<'a, T: 'a + Eq> {
     rle: &'a RleVec<T>,
@@ -634,7 +632,7 @@ mod tests {
         assert_eq!(rle.n_runs(), 1);
         assert_eq!(rle[0], 10);
 
-        let mut rle = RleVec::from_vec(vec![1,1,1,1,2,2,2,3,3,4]);
+        let mut rle = RleVec::from_slice(&[1, 1, 1, 1, 2, 2, 2, 3, 3, 4]);
 
         assert_eq!((0..10).map(|i| rle[i]).collect::<Vec<_>>(), vec![1,1,1,1,2,2,2,3,3,4]);
 
@@ -657,7 +655,7 @@ mod tests {
     #[test]
     fn inserting_values() {
         let mut v = vec![0,0,0,1,1,1,1,1,1,1,3,3,1,0,99,99,9];
-        let mut rle = RleVec::from_vec(v.clone());
+        let mut rle = RleVec::from_slice(&v);
         rle.insert(0,1);
         v.insert(0,1);
         assert_eq!((0..rle.len()).map(|i| rle[i]).collect::<Vec<_>>(), v);
@@ -699,7 +697,7 @@ mod tests {
     #[test]
     fn from_vec() {
         let v = vec![0,0,0,1,1,1,1,1,1,1,3,3,1,0,99,99,9];
-        let rle = RleVec::from_vec(v.clone());
+        let rle = RleVec::from_slice(&v);
         assert_eq!((0..v.len()).map(|i| rle[i]).collect::<Vec<_>>(), v);
         assert_eq!(rle.len(),17);
     }
