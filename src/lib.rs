@@ -114,23 +114,23 @@ use std::ops::Index;
 /// can be slow. For this reason, it is recommended to use `RleVec::with_capacity`
 /// whenever possible to specify how big the rle_vector is expected to get.
 #[derive(Debug)]
-pub struct RleVec<T: Eq> {
+pub struct RleVec<T> {
     runs: Vec<InternalRun<T>>,
 }
 
 #[derive(Debug)]
-pub struct Run<T: Eq> {
+pub struct Run<T> {
     pub length: usize,
     pub value: T,
 }
 
 #[derive(Debug)]
-struct InternalRun<T: Eq> {
+struct InternalRun<T> {
     end: usize,
     value: T,
 }
 
-impl<T: Eq> RleVec<T> {
+impl<T> RleVec<T> {
     /// Constructs a new empty `RleVec<T>`.
     ///
     /// The rle_vector will not allocate until elements are pushed onto it.
@@ -171,48 +171,6 @@ impl<T: Eq> RleVec<T> {
     /// ```
     pub fn with_capacity(capacity: usize) -> RleVec<T> {
         RleVec { runs: Vec::with_capacity(capacity) }
-    }
-
-    /// Appends an element to the back of this rle_vector.
-    ///
-    /// # Panics
-    /// Panics if the number of elements in the vector overflows a usize.
-    ///
-    /// # Example
-    /// ```
-    /// # use rle_vec::RleVec;
-    /// let mut rle = RleVec::new();
-    /// rle.push(1);
-    /// assert_eq!(rle[0], 1);
-    /// ```
-    pub fn push(&mut self, value: T) {
-        self.push_n(1, value);
-    }
-
-    /// Appends the same element n times to the back of this rle_vec.
-    ///
-    /// # Panics
-    /// Panics if the number of elements in the vector overflows a usize.
-    ///
-    /// # Example
-    /// ```
-    /// # use rle_vec::RleVec;
-    /// let mut rle = RleVec::new();
-    ///
-    /// // Push 10 times a 2
-    /// rle.push_n(10, 2);
-    /// assert_eq!(rle[9], 2);
-    /// ```
-    pub fn push_n(&mut self, n: usize, value: T) {
-        if n == 0 { return; }
-
-        let end = match self.runs.last_mut() {
-            Some(ref mut last) if last.value == value => return last.end += n,
-            Some(ref mut last) => last.end + n,
-            None => n - 1,
-        };
-
-        self.runs.push(InternalRun { value, end });
     }
 
     /// Returns the number of elements in the rle_vector.
@@ -362,6 +320,50 @@ impl<T: Eq> RleVec<T> {
     }
 }
 
+impl<T: Eq> RleVec<T> {
+    /// Appends an element to the back of this rle_vector.
+    ///
+    /// # Panics
+    /// Panics if the number of elements in the vector overflows a usize.
+    ///
+    /// # Example
+    /// ```
+    /// # use rle_vec::RleVec;
+    /// let mut rle = RleVec::new();
+    /// rle.push(1);
+    /// assert_eq!(rle[0], 1);
+    /// ```
+    pub fn push(&mut self, value: T) {
+        self.push_n(1, value);
+    }
+
+    /// Appends the same element n times to the back of this rle_vec.
+    ///
+    /// # Panics
+    /// Panics if the number of elements in the vector overflows a usize.
+    ///
+    /// # Example
+    /// ```
+    /// # use rle_vec::RleVec;
+    /// let mut rle = RleVec::new();
+    ///
+    /// // Push 10 times a 2
+    /// rle.push_n(10, 2);
+    /// assert_eq!(rle[9], 2);
+    /// ```
+    pub fn push_n(&mut self, n: usize, value: T) {
+        if n == 0 { return; }
+
+        let end = match self.runs.last_mut() {
+            Some(ref mut last) if last.value == value => return last.end += n,
+            Some(ref mut last) => last.end + n,
+            None => n - 1,
+        };
+
+        self.runs.push(InternalRun { value, end });
+    }
+}
+
 impl<T: Eq + Clone> RleVec<T> {
     /// Constructs a new `RleVec<T>` from a Vec<T>.
     /// This consumes the `Vec<T>`
@@ -479,7 +481,7 @@ impl<T: Eq + Clone> RleVec<T> {
     }
 }
 
-impl<T: Eq> Index<usize> for RleVec<T> {
+impl<T> Index<usize> for RleVec<T> {
     type Output = T;
     fn index(&self, index: usize) -> &T {
         let p = self.index_pos(index);
@@ -507,12 +509,12 @@ impl<T: Eq> FromIterator<Run<T>> for RleVec<T> {
     }
 }
 
-pub struct Iter<'a, T: 'a + Eq> {
+pub struct Iter<'a, T: 'a> {
     rle: &'a RleVec<T>,
     index: usize,
 }
 
-impl<'a, T: 'a + Eq> Iterator for Iter<'a, T> {
+impl<'a, T: 'a> Iterator for Iter<'a, T> {
     type Item = &'a T;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -529,13 +531,13 @@ impl<'a, T: 'a + Eq> Iterator for Iter<'a, T> {
     }
 }
 
-pub struct RunIterator<'a, T:'a + Eq> {
+pub struct RunIterator<'a, T:'a> {
     rle: &'a RleVec<T>,
     pos: usize,
     last_end: usize,
 }
 
-impl<'a, T: 'a +  Eq> Iterator for RunIterator<'a, T> {
+impl<'a, T: 'a> Iterator for RunIterator<'a, T> {
     type Item = Run<&'a T>;
 
     fn next(&mut self) -> Option<Self::Item> {
