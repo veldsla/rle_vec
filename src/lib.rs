@@ -14,7 +14,6 @@
 //!
 //! *\*Benchmarks show that setting `vec[idx] = value` is a lot slower than getting `vec[idx]`*
 //!
-extern crate rustc_serialize;
 
 use std::iter::FromIterator;
 use std::ops::Index;
@@ -113,18 +112,18 @@ use std::ops::Index;
 /// if the rle_vector's length is increased to 11, it will have to reallocate, which
 /// can be slow. For this reason, it is recommended to use `RleVec::with_capacity`
 /// whenever possible to specify how big the rle_vector is expected to get.
-#[derive(Debug, RustcEncodable, RustcDecodable)]
+#[derive(Debug)]
 pub struct RleVec<T> where T: Eq {
     runs: Vec<StoredRun<T>>,
 }
 
-#[derive(Debug, RustcEncodable, RustcDecodable)]
+#[derive(Debug)]
 pub struct Run<T> where T: Eq {
     pub value: T,
     pub length: usize
 }
 
-#[derive(Debug, RustcEncodable, RustcDecodable)]
+#[derive(Debug)]
 struct StoredRun<T> where T: Eq {
     value: T,
     end: usize

@@ -13,4 +13,3 @@ A vector like struct that stores data as runs of identical values. Useful for st
 """
 
 [dependencies]
-rustc-serialize = "0.3"
