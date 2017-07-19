@@ -19,6 +19,100 @@ extern crate rustc_serialize;
 use std::iter::FromIterator;
 use std::ops::Index;
 
+/// The `RleVec` struct handles like a normal vector and supports a subset from the `Vec` methods.
+///
+/// Not all methods implemented on `Vec` are implemented for `RleVec`. All methods returning a slice
+/// cannot work for `RleVec`.
+///
+/// # Examples:
+/// ```
+/// # use rle_vec::RleVec;
+/// let mut rle = RleVec::new();
+///
+/// rle.push(10); rle.push(10); rle.push(11);
+///
+/// assert_eq!(rle[1], 10);
+/// assert_eq!(rle[2], 11);
+///
+/// rle.insert(1,10);
+/// assert_eq!(rle.n_runs(), 2);
+///
+/// rle.set(0,1);
+/// assert_eq!(rle.n_runs(), 3);
+/// ```
+///
+/// `RleVec` can be constructed from `Iterators` and be iterated over just like a `Vec`.
+///
+/// ```
+/// # use rle_vec::RleVec;
+/// let v = vec![0,0,0,1,1,1,1,2,2,3,4,5,4,4,4];
+///
+/// let mut rle: RleVec<_> = v.into_iter().collect();
+///
+/// assert_eq!(rle.len(), 15);
+/// assert_eq!(rle.n_runs(), 7);
+///
+/// assert_eq!(rle.iter().nth(10), Some(&4));
+/// ```
+///
+/// An `RleVec` can be indexed like a regular vector, but not mutated. Use `RleVec::set` to change the
+/// value at an index.
+///
+/// ```
+/// # use rle_vec::RleVec;
+/// let v = vec![0,0,0,1,1,1,1,2,2,3];
+/// let mut rle: RleVec<_> = v.into_iter().collect();
+///
+/// rle.set(1,2);
+/// rle.insert(4,4);
+///
+/// assert_eq!(rle.iter().cloned().collect::<Vec<_>>(), vec![0,2,0,1,4,1,1,1,2,2,3]);
+///
+/// ```
+/// `RleVec::set` and `RleVec::insert` require `T: Clone`.
+///
+/// # Indexing
+///
+/// The `RleVec` type allows to access values by index, because it implements the
+/// `Index` trait. An example will be more explicit:
+///
+/// ```
+/// # use rle_vec::RleVec;
+/// let v = vec![0, 2, 4, 6];
+/// let rle: RleVec<_> = v.into_iter().collect();
+///
+/// println!("{}", rle[1]); // it will display '2'
+/// ```
+///
+/// However be careful: if you try to access an index which isn't in the `RleVec`,
+/// your software will panic! You cannot do this:
+///
+/// ```ignore
+/// # use rle_vec::RleVec;
+/// let v = vec![0, 2, 4, 6];
+/// let rle: RleVec<_> = v.into_iter().collect();
+///
+/// println!("{}", v[6]); // it will panic!
+/// ```
+///
+/// In conclusion: always check if the index you want to get really exists
+/// before doing it.
+///
+/// # Capacity and reallocation
+///
+/// The capacity of an rle_vector is the amount of space allocated for any future
+/// elements that will be added onto the rle_vector. This is not to be confused with
+/// the *length*, which specifies the number of actual elements.
+/// If an rle_vector's length exceeds its capacity, its capacity
+/// will automatically be increased, but its elements will have to be
+/// reallocated.
+///
+/// For example, an rle_vector with capacity 10 and length 0 would be an empty vector
+/// with space for 10 more elements. Pushing 10 or fewer elements onto the
+/// vector will not change its capacity or cause reallocation to occur. However,
+/// if the rle_vector's length is increased to 11, it will have to reallocate, which
+/// can be slow. For this reason, it is recommended to use `RleVec::with_capacity`
+/// whenever possible to specify how big the rle_vector is expected to get.
 #[derive(Debug, RustcEncodable, RustcDecodable)]
 pub struct RleVec<T> where T: Eq {
     runs: Vec<StoredRun<T>>,
@@ -36,67 +130,45 @@ struct StoredRun<T> where T: Eq {
     end: usize
 }
 
-/// The `RleVec` struct handles like a normal vector and supports a subset from the `Vec` methods.
-///
-/// # Examples:
-/// ```
-/// use rle_vec::RleVec;
-/// let mut rle = RleVec::new();
-/// rle.push(10); rle.push(10); rle.push(11);
-/// assert_eq!(rle[1], 10);
-/// assert_eq!(rle[2], 11);
-///
-/// rle.insert(1,10);
-/// assert_eq!(rle.n_runs(), 2);
-/// rle.set(0,1);
-/// assert_eq!(rle.n_runs(), 3);
-/// ```
-///
-/// `RleVec` can be constructed from `Iterators` and be iterated over just like a `Vec`.
-///
-/// ```
-/// use rle_vec::RleVec;
-/// let v = vec![0,0,0,1,1,1,1,2,2,3,4,5,4,4,4];
-/// let mut rle: RleVec<_> = v.into_iter().collect();
-/// assert_eq!(rle.len(), 15);
-/// assert_eq!(rle.n_runs(), 7);
-///
-/// assert_eq!(rle.iter().nth(10), Some(&4));
-/// ```
-///
-/// An `RleVec` can be indexed like a regular vector, but not mutated. Use `RleVec::set` to change the
-/// value at an index.
-///
-/// ```
-/// use rle_vec::RleVec;
-/// let v = vec![0,0,0,1,1,1,1,2,2,3];
-/// let mut rle: RleVec<_> = v.into_iter().collect();
-/// rle.set(1,2);
-/// rle.insert(4,4);
-/// assert_eq!(rle.iter().cloned().collect::<Vec<_>>(), vec![0,2,0,1,4,1,1,1,2,2,3]);
-///
-/// ```
-/// `RleVec::set` and `RleVec::insert` require `T: Clone`.
-///
-/// Not all methods implemented on `Vec` are implemented for `RleVec`. All methods returning a slice
-/// cannot work for `RleVec`.
 impl<T> RleVec<T> where T: Eq {
     /// Constructs a new empty `RleVec<T>`.
+    ///
+    /// The rle_vector will not allocate until elements are pushed onto it.
     ///
     /// # Examples
     ///
     /// ```
-    /// use rle_vec::RleVec;
-    ///
-    /// let mut rle = RleVec::<u64>::new();
-    /// rle.push(10);
+    /// # use rle_vec::RleVec;
+    /// let rle = RleVec::<i32>::new();
     /// ```
     pub fn new() -> RleVec<T> {
         RleVec { runs: Vec::new() }
     }
 
-    /// Constructs a new empty `RleVec<T>` with capacity for the number of runs. Choosing this value
-    /// requires knowledge about the composition of the data that is going to be inserted.
+    /// Constructs a new empty `RleVec<T>` with capacity for the number of runs.
+    ///
+    /// Choosing this value requires knowledge about the composition of the data that is going to be inserted.
+    ///
+    /// # Example
+    /// ```
+    /// # use rle_vec::RleVec;
+    /// let mut rle = RleVec::with_capacity(10);
+    ///
+    /// // The rle_vector contains no items, even though it has capacity for more
+    /// assert_eq!(rle.len(), 0);
+    ///
+    /// // These are all done without reallocating...
+    /// for i in 0..10 {
+    ///    rle.push(i);
+    /// }
+    ///
+    /// // The rle_vector contains 10 runs and 10 elements too...
+    /// assert_eq!(rle.len(), 10);
+    /// assert_eq!(rle.n_runs(), 10);
+    ///
+    /// // ...but this may make the rle_vector reallocate
+    /// rle.push(11);
+    /// ```
     pub fn with_capacity(capacity: usize) -> RleVec<T> {
         RleVec { runs: Vec::with_capacity(capacity) }
     }
@@ -107,11 +179,11 @@ impl<T> RleVec<T> where T: Eq {
     /// # Examples
     ///
     /// ```
-    /// use rle_vec::RleVec;
-    ///
+    /// # use rle_vec::RleVec;
     /// let v = vec![0,0,0,1,1,99,9];
     /// let rle = RleVec::from_vec(v);
-    /// assert_eq!(rle[3],1);
+    ///
+    /// assert_eq!(rle[3], 1);
     /// ```
     pub fn from_vec(v: Vec<T>) -> RleVec<T> {
         let mut rle = RleVec::<T>::new();
@@ -122,7 +194,18 @@ impl<T> RleVec<T> where T: Eq {
         rle
     }
 
-    /// Add single value to the RleVec
+    /// Appends an element to the back of a collection.
+    ///
+    /// # Panics
+    /// Panics if the number of elements in the vector overflows a usize.
+    ///
+    /// # Example
+    /// ```
+    /// # use rle_vec::RleVec;
+    /// let mut rle = RleVec::new();
+    /// rle.push(1);
+    /// assert_eq!(rle[0], 1);
+    /// ```
     pub fn push(&mut self, value: T) {
         let end = if let Some(last) = self.runs.last_mut() {
             if last.value == value {
@@ -257,7 +340,18 @@ impl<T> RleVec<T> where T: Eq {
         }
     }
 
-    /// Return the number of elements that can be indexed from the RleVec. O(1)
+    /// Returns the number of elements in the rle_vector.
+    ///
+    /// # Example
+    /// ```
+    /// # use rle_vec::RleVec;
+    /// let mut rle = RleVec::new();
+    /// rle.push(1);
+    /// rle.push(1);
+    /// rle.push(2);
+    ///
+    /// assert_eq!(rle.len(), 3);
+    /// ```
     pub fn len(&self) -> usize {
          match self.runs.last() {
                 None => 0,
@@ -265,12 +359,37 @@ impl<T> RleVec<T> where T: Eq {
        }
     }
 
-    /// Returns true is the RleVec is empty
+    /// Returns `true` if the rle_vector contains no elements.
+    ///
+    /// # Examples
+    /// ```
+    /// # use rle_vec::RleVec;
+    /// let mut rle = RleVec::new();
+    /// assert!(rle.is_empty());
+    ///
+    /// rle.push(1);
+    /// assert!(!rle.is_empty());
+    /// ```
     pub fn is_empty(&self) -> bool {
         self.runs.is_empty()
     }
 
     /// Returns the number of runs
+    ///
+    /// # Example
+    /// ```
+    /// # use rle_vec::RleVec;
+    /// let mut rle = RleVec::new();
+    /// assert_eq!(rle.n_runs(), 0);
+    ///
+    /// rle.push(1);
+    /// rle.push(1);
+    /// assert_eq!(rle.n_runs(), 1);
+    ///
+    /// rle.push(2);
+    /// rle.push(3);
+    /// assert_eq!(rle.n_runs(), 3);
+    /// ```
     pub fn n_runs(&self) -> usize {
         self.runs.len()
     }
@@ -290,8 +409,25 @@ impl<T> RleVec<T> where T: Eq {
         self.runs.iter().map(|r| r.end).collect()
     }
 
-    /// Returns an iterator that can be used to get references to the values in the RleVec
-    /// comparable to iterating over a Vec<T>
+    /// Returns an iterator over values. Comparable to a `Vec` iterator.
+    ///
+    /// # Example
+    /// ```
+    /// # use rle_vec::RleVec;
+    /// let mut rle = RleVec::new();
+    /// rle.push(1);
+    /// rle.push(1);
+    /// rle.push(2);
+    /// rle.push(3);
+    ///
+    /// let mut iterator = rle.iter();
+    ///
+    /// assert_eq!(iterator.next(), Some(&1));
+    /// assert_eq!(iterator.next(), Some(&1));
+    /// assert_eq!(iterator.next(), Some(&2));
+    /// assert_eq!(iterator.next(), Some(&3));
+    /// assert_eq!(iterator.next(), None);
+    /// ```
     pub fn iter(&self) -> RleVecIterator<T> {
         RleVecIterator {
             rle: self,
@@ -301,7 +437,25 @@ impl<T> RleVec<T> where T: Eq {
         }
     }
 
-    /// Returns an iterator that can be used to iterate over the runs in RleVec.
+    /// Returns an iterator that can be used to iterate over the runs.
+    ///
+    /// # Example
+    /// ```
+    /// # use rle_vec::RleVec;
+    /// let mut rle = RleVec::new();
+    /// rle.push(1);
+    /// rle.push(1);
+    /// rle.push(2);
+    /// rle.push(3);
+    // ///
+    // /// let mut iterator = rle.iter_runs();
+    // ///
+    // /// assert_eq!(iterator.next(), Some(&1));
+    // /// assert_eq!(iterator.next(), Some(&1));
+    // /// assert_eq!(iterator.next(), Some(&2));
+    // /// assert_eq!(iterator.next(), Some(&3));
+    // /// assert_eq!(iterator.next(), None);
+    /// ```
     pub fn iter_runs(&self) -> RunIterator<T> {
         RunIterator {
             rle: self,
