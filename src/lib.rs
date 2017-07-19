@@ -294,12 +294,8 @@ impl<T> RleVec<T> {
     // /// assert_eq!(iterator.next(), Some(&3));
     // /// assert_eq!(iterator.next(), None);
     /// ```
-    pub fn iter_runs(&self) -> RunIterator<T> {
-        RunIterator {
-            rle: self,
-            pos: 0,
-            last_end: 0
-        }
+    pub fn iter_runs(&self) -> RunIter<T> {
+        RunIter { rle: self, index: 0, last_end: 0 }
     }
 
     fn index_pos(&self, index: usize) -> usize {
@@ -483,6 +479,7 @@ impl<T: Eq + Clone> RleVec<T> {
 
 impl<T> Index<usize> for RleVec<T> {
     type Output = T;
+
     fn index(&self, index: usize) -> &T {
         let p = self.index_pos(index);
         &self.runs[p].value
@@ -522,7 +519,7 @@ impl<'a, T: 'a> Iterator for Iter<'a, T> {
             return None
         }
         self.index += 1;
-        Some(&self.rle[self.index - 1])
+        Some(self.rle.index(self.index - 1))
     }
 
     fn nth(&mut self, n: usize) -> Option<Self::Item> {
@@ -531,27 +528,26 @@ impl<'a, T: 'a> Iterator for Iter<'a, T> {
     }
 }
 
-pub struct RunIterator<'a, T:'a> {
+pub struct RunIter<'a, T:'a> {
     rle: &'a RleVec<T>,
-    pos: usize,
+    index: usize,
     last_end: usize,
 }
 
-impl<'a, T: 'a> Iterator for RunIterator<'a, T> {
+impl<'a, T: 'a> Iterator for RunIter<'a, T> {
     type Item = Run<&'a T>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.pos < self.rle.runs.len() {
-            let ref r = self.rle.runs[self.pos];
+        if self.index < self.rle.runs.len() {
+            let ref r = self.rle.runs[self.index];
             let length = r.end - self.last_end + 1;
-            self.pos += 1;
+            self.index += 1;
             self.last_end = r.end + 1;
             Some(Run {
                 value: &r.value,
                 length: length })
-        } else {
-            None
         }
+        else { None }
     }
 }
 
@@ -699,7 +695,7 @@ mod tests {
         assert_eq!(rle.iter().skip(13).take(2).max(), Some(&90));
         assert_eq!(rle.iter().skip(13).take(2).min(), Some(&0));
 
-        //runiterators
+        //runiters
         assert_eq!(rle.iter_runs().map(|r| r.value).collect::<Vec<_>>(), vec![&0,&1,&3,&123,&0,&90,&99]);
         assert_eq!(rle.iter_runs().map(|r| r.length).collect::<Vec<_>>(), vec![3,7,2,1,1,2,1]);
 
