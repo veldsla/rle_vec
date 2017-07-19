@@ -34,10 +34,10 @@ use std::ops::Index;
 /// assert_eq!(rle[2], 11);
 ///
 /// rle.insert(1,10);
-/// assert_eq!(rle.n_runs(), 2);
+/// assert_eq!(rle.runs(), 2);
 ///
 /// rle.set(0,1);
-/// assert_eq!(rle.n_runs(), 3);
+/// assert_eq!(rle.runs(), 3);
 /// ```
 ///
 /// `RleVec` can be constructed from `Iterators` and be iterated over just like a `Vec`.
@@ -49,7 +49,7 @@ use std::ops::Index;
 /// let mut rle: RleVec<_> = v.into_iter().collect();
 ///
 /// assert_eq!(rle.len(), 15);
-/// assert_eq!(rle.n_runs(), 7);
+/// assert_eq!(rle.runs(), 7);
 ///
 /// assert_eq!(rle.iter().nth(10), Some(&4));
 /// ```
@@ -114,19 +114,19 @@ use std::ops::Index;
 /// whenever possible to specify how big the rle_vector is expected to get.
 #[derive(Debug)]
 pub struct RleVec<T: Eq> {
-    runs: Vec<StoredRun<T>>,
+    runs: Vec<InternalRun<T>>,
 }
 
 #[derive(Debug)]
 pub struct Run<T: Eq> {
+    pub length: usize,
     pub value: T,
-    pub length: usize
 }
 
 #[derive(Debug)]
-struct StoredRun<T: Eq> {
+struct InternalRun<T: Eq> {
+    end: usize,
     value: T,
-    end: usize
 }
 
 impl<T: Eq> RleVec<T> {
@@ -163,7 +163,7 @@ impl<T: Eq> RleVec<T> {
     ///
     /// // The rle_vector contains 10 runs and 10 elements too...
     /// assert_eq!(rle.len(), 10);
-    /// assert_eq!(rle.n_runs(), 10);
+    /// assert_eq!(rle.runs(), 10);
     ///
     /// // ...but this may make the rle_vector reallocate
     /// rle.push(11);
@@ -172,7 +172,7 @@ impl<T: Eq> RleVec<T> {
         RleVec { runs: Vec::with_capacity(capacity) }
     }
 
-    /// Appends an element to the back of a collection.
+    /// Appends an element to the back of this rle_vector.
     ///
     /// # Panics
     /// Panics if the number of elements in the vector overflows a usize.
@@ -185,137 +185,33 @@ impl<T: Eq> RleVec<T> {
     /// assert_eq!(rle[0], 1);
     /// ```
     pub fn push(&mut self, value: T) {
-        let end = if let Some(last) = self.runs.last_mut() {
-            if last.value == value {
-                last.end += 1;
-                return;
-            }
-            last.end + 1
-        } else {
-            0
+        self.push_n(1, value);
+    }
+
+    /// Appends the same element n times to the back of this rle_vec.
+    ///
+    /// # Panics
+    /// Panics if the number of elements in the vector overflows a usize.
+    ///
+    /// # Example
+    /// ```
+    /// # use rle_vec::RleVec;
+    /// let mut rle = RleVec::new();
+    ///
+    /// // Push 10 times a 2
+    /// rle.push_n(10, 2);
+    /// assert_eq!(rle[9], 2);
+    /// ```
+    pub fn push_n(&mut self, n: usize, value: T) {
+        if n == 0 { return; }
+
+        let end = match self.runs.last_mut() {
+            Some(ref mut last) if last.value == value => return last.end += n,
+            Some(ref mut last) => last.end + n,
+            None => n - 1,
         };
 
-        self.runs.push(StoredRun { value: value, end: end });
-    }
-
-    /// Add single value n times to the RleVec
-    pub fn push_n(&mut self, value: T, n: usize) {
-        if n == 0 {
-            return;
-        }
-        let end = if let Some(last) = self.runs.last_mut() {
-            if last.value == value {
-                last.end += n;
-                return;
-            }
-            last.end + n
-        } else {
-            n - 1
-        };
-
-        self.runs.push(StoredRun { value: value, end: end });
-    }
-
-    /// Use the provided `Run` to extend the RleVec
-    pub fn push_run(&mut self, run: Run<T>) {
-        self.push_n(run.value, run.length)
-    }
-
-    /// Modify the RleVec at index. This can result in the breaking of a run and therefore be an
-    /// expensive operation. If the value is equal to the value currently present the complexity is
-    /// O(log n). But if the run needs to be broken the complexity increases to a worst case of
-    /// O((log n) + n)
-    pub fn set(&mut self, index: usize, value: T) where T: Clone {
-        let (mut p, start, end) = self.index_info(index);
-        //no change early return
-        if self.runs[p].value == value {
-            return;
-        }
-
-        //a size 1 run is replaced with the new value or joined with next or previous
-        if end - start == 0 {
-            //can we join the previous run?
-            if p > 0 && self.runs[p-1].value == value {
-                self.runs.remove(p);
-                self.runs[p-1].end += 1;
-                p -= 1;
-            }
-            // can we join the next run?
-            if p < self.runs.len() - 1 && self.runs[p+1].value == value {
-                self.runs.remove(p);
-                return;
-            }
-            //only one size-1 run in Rle replace its value
-            self.runs[p].value = value;
-            return;
-        }
-
-        //run size > 1, new value can split current run or maybe merge with previous or next
-        if index == start {
-            //compare to previous run
-            if p > 0 {
-                if self.runs[p-1].value == value {
-                    self.runs[p-1].end += 1;
-                } else {
-                    self.runs.insert(p, StoredRun { value: value, end: start });
-                }
-            } else {
-                self.runs.insert(0, StoredRun { value: value, end: 0 });
-            }
-        } else if index == end {
-            //decrease current run length
-            self.runs[p].end -= 1;
-
-            //compare to next run
-            if p < self.runs.len() - 1 && self.runs[p+1].value == value {
-            } else {
-                self.runs.insert(p+1, StoredRun {value: value, end: end});
-            }
-        } else {
-            //split current run
-            self.runs[p].end = index - 1;
-            let v = self.runs[p].value.clone();
-            //this might be more efficient using split_off, push and extend?
-            //this implementation has complexity O((log n) + 2n)
-            self.runs.insert(p + 1, StoredRun { value: value, end: index });
-            self.runs.insert(p + 2, StoredRun { value: v, end: end });
-        }
-    }
-
-    /// Insert a value in the RleVec at index. Because the positions of the values after the
-    /// inserted value need to be changed the complexity of this function is O((log n) + 2n)
-    pub fn insert(&mut self, index: usize, value: T) where T: Clone {
-        if index == self.len() {
-            self.push(value);
-            return;
-        }
-
-        let (p, start, end) = self.index_info(index);
-        //increment all run ends from position p
-        for r in self.runs[p..].iter_mut() {
-            r.end += 1;
-        }
-
-        //if value is the same as in run were done
-        if self.runs[p].value == value {
-            return;
-        }
-
-        // inserting  value can split current run or maybe merge with previous or next
-        if index == start {
-            //compare to previous run
-            if p > 0 && self.runs[p-1].value == value {
-                self.runs[p-1].end += 1;
-            } else {
-                self.runs.insert(p, StoredRun { value: value, end: index });
-            }
-        } else {
-            //split current run
-            self.runs[p].end = index - 1;
-            let v = self.runs[p].value.clone();
-            self.runs.insert(p + 1, StoredRun { value: value, end: index });
-            self.runs.insert(p + 2, StoredRun { value: v, end: end + 1 });
-        }
+        self.runs.push(InternalRun { value, end });
     }
 
     /// Returns the number of elements in the rle_vector.
@@ -331,10 +227,10 @@ impl<T: Eq> RleVec<T> {
     /// assert_eq!(rle.len(), 3);
     /// ```
     pub fn len(&self) -> usize {
-         match self.runs.last() {
-                None => 0,
-                Some(r) => r.end + 1
-       }
+        match self.runs.last() {
+            Some(run) => run.end + 1,
+            None => 0,
+        }
     }
 
     /// Returns `true` if the rle_vector contains no elements.
@@ -358,27 +254,40 @@ impl<T: Eq> RleVec<T> {
     /// ```
     /// # use rle_vec::RleVec;
     /// let mut rle = RleVec::new();
-    /// assert_eq!(rle.n_runs(), 0);
+    /// assert_eq!(rle.runs(), 0);
     ///
     /// rle.push(1);
     /// rle.push(1);
-    /// assert_eq!(rle.n_runs(), 1);
+    /// assert_eq!(rle.runs(), 1);
     ///
     /// rle.push(2);
     /// rle.push(3);
-    /// assert_eq!(rle.n_runs(), 3);
+    /// assert_eq!(rle.runs(), 3);
     /// ```
-    pub fn n_runs(&self) -> usize {
+    pub fn runs(&self) -> usize {
         self.runs.len()
     }
 
     /// Returns the 0-based start coordinates of the runs
+    ///
+    /// # Example
+    /// ```
+    /// # use rle_vec::RleVec;
+    /// let mut rle = RleVec::new();
+    /// rle.push(1);
+    /// rle.push(1);
+    /// rle.push(2);
+    /// rle.push(2);
+    /// rle.push(3);
+    ///
+    /// let starts = rle.starts();
+    /// assert_eq!(starts, vec![0, 2, 4]);
+    /// ```
     pub fn starts(&self) -> Vec<usize> {
-        if self.is_empty() {
-            return Vec::new();
-        }
+        if self.is_empty() { return Vec::new() }
+
         let mut res = vec![0];
-        res.extend(self.runs.iter().take(self.n_runs() - 1).map(|e| e.end + 1));
+        res.extend(self.runs.iter().take(self.runs() - 1).map(|e| e.end + 1));
         res
     }
 
@@ -406,8 +315,8 @@ impl<T: Eq> RleVec<T> {
     /// assert_eq!(iterator.next(), Some(&3));
     /// assert_eq!(iterator.next(), None);
     /// ```
-    pub fn iter(&self) -> RleVecIterator<T> {
-        RleVecIterator {
+    pub fn iter(&self) -> Iter<T> {
+        Iter {
             rle: self,
             pos: 0,
             //index: 0,
@@ -478,6 +387,103 @@ impl<T: Eq + Clone> RleVec<T> {
         }
         rle
     }
+
+    /// Modify the RleVec at index. This can result in the breaking of a run and therefore be an
+    /// expensive operation. If the value is equal to the value currently present the complexity is
+    /// O(log n). But if the run needs to be broken the complexity increases to a worst case of
+    /// O((log n) + n)
+    pub fn set(&mut self, index: usize, value: T) {
+        let (mut p, start, end) = self.index_info(index);
+        //no change early return
+        if self.runs[p].value == value {
+            return;
+        }
+
+        //a size 1 run is replaced with the new value or joined with next or previous
+        if end - start == 0 {
+            //can we join the previous run?
+            if p > 0 && self.runs[p-1].value == value {
+                self.runs.remove(p);
+                self.runs[p-1].end += 1;
+                p -= 1;
+            }
+            // can we join the next run?
+            if p < self.runs.len() - 1 && self.runs[p+1].value == value {
+                self.runs.remove(p);
+                return;
+            }
+            //only one size-1 run in Rle replace its value
+            self.runs[p].value = value;
+            return;
+        }
+
+        //run size > 1, new value can split current run or maybe merge with previous or next
+        if index == start {
+            //compare to previous run
+            if p > 0 {
+                if self.runs[p-1].value == value {
+                    self.runs[p-1].end += 1;
+                } else {
+                    self.runs.insert(p, InternalRun { value: value, end: start });
+                }
+            } else {
+                self.runs.insert(0, InternalRun { value: value, end: 0 });
+            }
+        } else if index == end {
+            //decrease current run length
+            self.runs[p].end -= 1;
+
+            //compare to next run
+            if p < self.runs.len() - 1 && self.runs[p+1].value == value {
+            } else {
+                self.runs.insert(p+1, InternalRun {value: value, end: end});
+            }
+        } else {
+            //split current run
+            self.runs[p].end = index - 1;
+            let v = self.runs[p].value.clone();
+            //this might be more efficient using split_off, push and extend?
+            //this implementation has complexity O((log n) + 2n)
+            self.runs.insert(p + 1, InternalRun { value: value, end: index });
+            self.runs.insert(p + 2, InternalRun { value: v, end: end });
+        }
+    }
+
+    /// Insert a value in the RleVec at index. Because the positions of the values after the
+    /// inserted value need to be changed the complexity of this function is O((log n) + 2n)
+    pub fn insert(&mut self, index: usize, value: T) {
+        if index == self.len() {
+            self.push(value);
+            return;
+        }
+
+        let (p, start, end) = self.index_info(index);
+        //increment all run ends from position p
+        for r in self.runs[p..].iter_mut() {
+            r.end += 1;
+        }
+
+        //if value is the same as in run were done
+        if self.runs[p].value == value {
+            return;
+        }
+
+        // inserting  value can split current run or maybe merge with previous or next
+        if index == start {
+            //compare to previous run
+            if p > 0 && self.runs[p-1].value == value {
+                self.runs[p-1].end += 1;
+            } else {
+                self.runs.insert(p, InternalRun { value: value, end: index });
+            }
+        } else {
+            //split current run
+            self.runs[p].end = index - 1;
+            let v = self.runs[p].value.clone();
+            self.runs.insert(p + 1, InternalRun { value: value, end: index });
+            self.runs.insert(p + 2, InternalRun { value: v, end: end + 1 });
+        }
+    }
 }
 
 impl<T: Eq> Index<usize> for RleVec<T> {
@@ -500,22 +506,22 @@ impl<T: Eq> FromIterator<T> for RleVec<T> {
 
 impl<T: Eq> FromIterator<Run<T>> for RleVec<T> {
     fn from_iter<I: IntoIterator<Item=Run<T>>>(iter: I) -> Self {
-        let mut c = RleVec::new();
-        for i in iter {
-            c.push_run(i);
+        let mut rle = RleVec::new();
+        for run in iter {
+            rle.push_n(run.length, run.value);
         }
-        c
+        rle
     }
 }
 
-pub struct RleVecIterator<'a, T: 'a + Eq> {
+pub struct Iter<'a, T: 'a + Eq> {
     rle: &'a RleVec<T>,
     pos: usize,
     //index: usize,
     remaining: usize
 }
 
-impl<'a, T: 'a +  Eq> Iterator for RleVecIterator<'a, T> {
+impl<'a, T: 'a +  Eq> Iterator for Iter<'a, T> {
     type Item = &'a T;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -557,7 +563,7 @@ impl<'a, T: 'a +  Eq> Iterator for RleVecIterator<'a, T> {
     }
 }
 
-impl<'a, T: 'a +  Eq> RleVecIterator<'a, T> {
+impl<'a, T: 'a +  Eq> Iter<'a, T> {
     //attempt to move to the next run
     fn next_run(&mut self) -> bool {
         if !self.rle.is_empty() && self.pos < self.rle.runs.len() - 1 {
@@ -613,14 +619,14 @@ mod tests {
         rle.push(3);
         rle.push(4);
         assert_eq!(rle.len(), 10);
-        assert_eq!(rle.n_runs(), 4);
+        assert_eq!(rle.runs(), 4);
 
-        rle.push_n(4,3);
+        rle.push_n(3, 4);
         assert_eq!(rle.len(), 13);
-        assert_eq!(rle.n_runs(), 4);
-        rle.push_run(Run {value: 5, length: 3});
+        assert_eq!(rle.runs(), 4);
+        rle.push_n(3, 5);
         assert_eq!(rle.len(), 16);
-        assert_eq!(rle.n_runs(), 5);
+        assert_eq!(rle.runs(), 5);
     }
 
     #[test]
@@ -629,7 +635,7 @@ mod tests {
         rle.push(1);
         rle.set(0, 10);
         assert_eq!(rle.len(), 1);
-        assert_eq!(rle.n_runs(), 1);
+        assert_eq!(rle.runs(), 1);
         assert_eq!(rle[0], 10);
 
         let mut rle = RleVec::from_slice(&[1, 1, 1, 1, 2, 2, 2, 3, 3, 4]);
@@ -649,7 +655,7 @@ mod tests {
         assert_eq!((0..10).map(|i| rle[i]).collect::<Vec<_>>(), vec![2,1,4,1,2,2,5,3,3,2]);
         rle.set(2, 1);
         assert_eq!((0..10).map(|i| rle[i]).collect::<Vec<_>>(), vec![2,1,1,1,2,2,5,3,3,2]);
-        assert_eq!(rle.n_runs(), 6);
+        assert_eq!(rle.runs(), 6);
     }
 
     #[test]
@@ -670,17 +676,17 @@ mod tests {
         rle.insert(2,0);
         v.insert(2,0);
         assert_eq!((0..rle.len()).map(|i| rle[i]).collect::<Vec<_>>(), v);
-        assert_eq!(rle.n_runs(),9);
+        assert_eq!(rle.runs(),9);
 
         rle.insert(8,0);
         v.insert(8,0);
         assert_eq!((0..rle.len()).map(|i| rle[i]).collect::<Vec<_>>(), v);
-        assert_eq!(rle.n_runs(),11);
+        assert_eq!(rle.runs(),11);
 
         rle.insert(13,4);
         v.insert(13,4);
         assert_eq!((0..rle.len()).map(|i| rle[i]).collect::<Vec<_>>(), v);
-        assert_eq!(rle.n_runs(),12);
+        assert_eq!(rle.runs(),12);
 
         let v = vec![0,0,0,1,1,1,1,2,2,3];
         let mut rle: RleVec<_> = v.into_iter().collect();
@@ -745,7 +751,7 @@ mod tests {
 
         let mut copy = RleVec::new();
         for r in rle.iter_runs() {
-            copy.push_n(r.value.clone(), r.length);
+            copy.push_n(r.length, r.value.clone());
         }
         assert_eq!(copy.iter().cloned().collect::<Vec<_>>(), v);
         let copy2: RleVec<_> = rle.iter_runs().map(|r| Run { value: r.value.clone(), length: r.length }).collect();
