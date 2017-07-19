@@ -16,6 +16,7 @@
 //!
 
 use std::iter::FromIterator;
+use std::iter::once;
 use std::ops::Index;
 
 /// The `RleVec` struct handles like a normal vector and supports a subset from the `Vec` methods.
@@ -285,10 +286,7 @@ impl<T: Eq> RleVec<T> {
     /// ```
     pub fn starts(&self) -> Vec<usize> {
         if self.is_empty() { return Vec::new() }
-
-        let mut res = vec![0];
-        res.extend(self.runs.iter().take(self.runs() - 1).map(|e| e.end + 1));
-        res
+        once(0).chain(self.runs.iter().take(self.runs() - 1).map(|r| r.end + 1)).collect()
     }
 
     /// Returns the 0-based end coordinates of the runs
