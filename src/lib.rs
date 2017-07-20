@@ -241,6 +241,60 @@ impl<T> RleVec<T> {
         self.runs.clear()
     }
 
+    /// Returns the last value, or None if it is empty.
+    ///
+    /// # Example
+    /// ```
+    /// # use rle_vec::RleVec;
+    /// let rle = RleVec::from_slice(&[10, 10, 40, 40, 30]);
+    /// assert_eq!(rle.last(), Some(&30));
+    ///
+    /// let rle = RleVec::<i32>::new();
+    /// assert_eq!(rle.last(), None);
+    /// ```
+    pub fn last(&self) -> Option<&T> {
+        match self.runs.last() {
+            Some(last) => Some(&last.value),
+            None => None,
+        }
+    }
+
+    /// Returns the last run, or None if it is empty.
+    ///
+    /// # Example
+    /// ```
+    /// # use rle_vec::{RleVec, Run};
+    /// let mut rle = RleVec::new();
+    ///
+    /// assert_eq!(rle.last_run(), None);
+    ///
+    /// rle.push(1);
+    /// rle.push(1);
+    /// rle.push(1);
+    /// rle.push(1);
+    ///
+    /// assert_eq!(rle.last_run(), Some(Run{ len: 4, value: &1 }));
+    ///
+    /// rle.push(2);
+    /// rle.push(2);
+    /// rle.push(3);
+    ///
+    /// assert_eq!(rle.last_run(), Some(Run{ len: 1, value: &3 }));
+    /// ```
+    pub fn last_run(&self) -> Option<Run<&T>> {
+        let previous_end = if self.runs.len() >= 2 {
+            self.runs[self.runs.len() - 2].end + 1
+        } else { 0 };
+
+        match self.runs.last() {
+            Some(last) => Some(Run {
+                len: last.end + 1 - previous_end,
+                value: &last.value
+            }),
+            None => None,
+        }
+    }
+
     /// Returns the number of runs
     ///
     /// # Example
@@ -328,7 +382,7 @@ impl<T> RleVec<T> {
     /// assert_eq!(iterator.next(), None);
     /// ```
     pub fn runs(&self) -> Runs<T> {
-        Runs { rle: self, index: 0, last_end: 0 }
+        Runs { rle: self, run_index: 0, last_end: 0 }
     }
 
     fn run_index(&self, index: usize) -> usize {
@@ -588,21 +642,20 @@ impl<T> Index<usize> for RleVec<T> {
 }
 
 impl<T: Eq> FromIterator<T> for RleVec<T> {
-    fn from_iter<I: IntoIterator<Item=T>>(iter: I) -> Self {
+    fn from_iter<I>(iter: I) -> Self where I: IntoIterator<Item=T> {
         let mut rle = RleVec::new();
-        for i in iter {
-            rle.push(i);
-        }
+        rle.extend(iter);
         rle
     }
 }
 
 impl<T: Eq> FromIterator<Run<T>> for RleVec<T> {
-    fn from_iter<I: IntoIterator<Item=Run<T>>>(iter: I) -> Self {
-        let mut rle = RleVec::new();
-        for run in iter {
-            rle.push_n(run.len, run.value);
-        }
+    fn from_iter<I>(iter: I) -> Self where I: IntoIterator<Item=Run<T>> {
+        let iter = iter.into_iter();
+        let (lower, _) = iter.size_hint();
+
+        let mut rle = RleVec::with_capacity(lower);
+        rle.extend(iter);
         rle
     }
 }
@@ -610,6 +663,22 @@ impl<T: Eq> FromIterator<Run<T>> for RleVec<T> {
 impl<T> Default for RleVec<T> {
     fn default() -> Self {
         RleVec::new()
+    }
+}
+
+impl<T: Eq> Extend<T> for RleVec<T> {
+    fn extend<I>(&mut self, iter: I) where I: IntoIterator<Item=T> {
+        for value in iter {
+            self.push(value)
+        }
+    }
+}
+
+impl<T: Eq> Extend<Run<T>> for RleVec<T> {
+    fn extend<I>(&mut self, iter: I) where I: IntoIterator<Item=Run<T>> {
+        for Run{ len, value } in iter {
+            self.push_n(len, value)
+        }
     }
 }
 
@@ -642,7 +711,7 @@ impl<'a, T: 'a> Iterator for Iter<'a, T> {
     type Item = &'a T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.rle.is_empty() || self.index == self.rle.len() {
+        if self.index == self.rle.len() {
             return None
         }
         let value = &self.rle.runs[self.run_index].value;
@@ -651,6 +720,23 @@ impl<'a, T: 'a> Iterator for Iter<'a, T> {
             self.run_index += 1;
         }
         Some(value)
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = self.rle.len() - self.index;
+        (len, Some(len))
+    }
+
+    fn count(self) -> usize {
+        // thanks to the ExactSizeIterator impl
+        self.len()
+    }
+
+    fn last(self) -> Option<Self::Item> {
+        if self.index == self.rle.len() {
+            return None
+        }
+        self.rle.last()
     }
 
     fn nth(&mut self, n: usize) -> Option<Self::Item> {
@@ -663,6 +749,8 @@ impl<'a, T: 'a> Iterator for Iter<'a, T> {
         self.next()
     }
 }
+
+impl<'a, T: 'a> ExactSizeIterator for Iter<'a, T> { }
 
 /// Immutable `RelVec` iterator over runs.
 ///
@@ -681,7 +769,7 @@ impl<'a, T: 'a> Iterator for Iter<'a, T> {
 /// ```
 pub struct Runs<'a, T:'a> {
     rle: &'a RleVec<T>,
-    index: usize,
+    run_index: usize,
     last_end: usize,
 }
 
@@ -689,16 +777,43 @@ impl<'a, T: 'a> Iterator for Runs<'a, T> {
     type Item = Run<&'a T>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.index < self.rle.runs.len() {
-            let &InternalRun { ref value, end } = self.rle.runs.index(self.index);
-            let len = end - self.last_end + 1;
-            self.index += 1;
-            self.last_end = end + 1;
-            Some(Run { len, value })
+        if self.run_index == self.rle.runs.len() {
+            return None
         }
-        else { None }
+        let &InternalRun { ref value, end } = self.rle.runs.index(self.run_index);
+        let len = end - self.last_end + 1;
+        self.run_index += 1;
+        self.last_end = end + 1;
+        Some(Run { len, value })
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = self.rle.runs.len() - self.run_index;
+        (len, Some(len))
+    }
+
+    fn count(self) -> usize {
+        // thanks to the ExactSizeIterator impl
+        self.len()
+    }
+
+    fn last(self) -> Option<Self::Item> {
+        if self.run_index == self.rle.runs.len() {
+            return None
+        }
+        self.rle.last_run()
+    }
+
+    fn nth(&mut self, n: usize) -> Option<Self::Item> {
+        self.run_index = cmp::min(self.run_index + n, self.rle.runs.len());
+        self.last_end = if self.run_index != 0 {
+            self.rle.runs[self.run_index - 1].end + 1
+        } else { 0 };
+        self.next()
     }
 }
+
+impl<'a, T: 'a> ExactSizeIterator for Runs<'a, T> { }
 
 #[cfg(test)]
 mod tests {
@@ -880,6 +995,35 @@ mod tests {
         assert_eq!(copy.iter().cloned().collect::<Vec<_>>(), v);
         let copy2: RleVec<i32> = rle.runs().map(|r| Run { value: r.value.clone(), len: r.len }).collect();
         assert_eq!(copy2.iter().cloned().collect::<Vec<_>>(), v);
+    }
+
+    #[test]
+    fn run_iters() {
+        let rle = RleVec::from_slice(&[1,1,1,1,1,2,2,2,2,3,3,3,5,5,5,5]);
+
+        let mut iterator = rle.runs();
+
+        assert_eq!(iterator.next(), Some(Run{ len: 5, value: &1 }));
+        assert_eq!(iterator.next(), Some(Run{ len: 4, value: &2 }));
+        assert_eq!(iterator.next(), Some(Run{ len: 3, value: &3 }));
+        assert_eq!(iterator.next(), Some(Run{ len: 4, value: &5 }));
+        assert_eq!(iterator.next(), None);
+        assert_eq!(iterator.next(), None);
+
+        let mut iterator = rle.runs();
+
+        assert_eq!(iterator.nth(0), Some(Run{ len: 5, value: &1 }));
+        assert_eq!(iterator.nth(0), Some(Run{ len: 4, value: &2 }));
+        assert_eq!(iterator.nth(0), Some(Run{ len: 3, value: &3 }));
+        assert_eq!(iterator.nth(0), Some(Run{ len: 4, value: &5 }));
+        assert_eq!(iterator.nth(0), None);
+
+        let mut iterator = rle.runs();
+
+        assert_eq!(iterator.nth(0), Some(Run{ len: 5, value: &1 }));
+        assert_eq!(iterator.nth(1), Some(Run{ len: 3, value: &3 }));
+        assert_eq!(iterator.nth(0), Some(Run{ len: 4, value: &5 }));
+        assert_eq!(iterator.nth(0), None);
     }
 
     #[test]
