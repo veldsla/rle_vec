@@ -15,6 +15,7 @@
 //! *\*Benchmarks show that setting `vec[idx] = value` is a lot slower than getting `vec[idx]`*
 //!
 
+use std::io;
 use std::iter::FromIterator;
 use std::iter::once;
 use std::cmp;
@@ -680,6 +681,20 @@ impl<T: Eq> Extend<Run<T>> for RleVec<T> {
             self.push_n(len, value)
         }
     }
+}
+
+impl io::Write for RleVec<u8> {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.extend(buf.iter().cloned());
+        Ok(buf.len())
+    }
+
+    fn write_all(&mut self, buf: &[u8]) -> io::Result<()> {
+        self.extend(buf.iter().cloned());
+        Ok( () )
+    }
+
+    fn flush(&mut self) -> io::Result<()> { Ok( () ) }
 }
 
 /// Immutable `RelVec` iterator over values.
