@@ -19,6 +19,7 @@ use std::io;
 use std::iter::FromIterator;
 use std::iter::once;
 use std::cmp;
+use std::ptr;
 use std::ops::Index;
 
 /// The `RleVec` struct handles like a normal vector and supports a subset from the `Vec` methods.
@@ -697,6 +698,48 @@ impl io::Write for RleVec<u8> {
     fn flush(&mut self) -> io::Result<()> { Ok( () ) }
 }
 
+impl io::Read for RleVec<u8> {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        let len = cmp::min(buf.len(), self.len());
+
+        let mut buf = buf.as_mut_ptr();
+        let mut remaining = len;
+        let mut remove_until = 0;
+
+        for (i, Run{ len, value }) in self.runs().enumerate() {
+
+            let len = if len < remaining { len }
+            else if len == remaining { remove_until = i + 1; remaining }
+            else { remaining };
+            remaining -= len;
+
+            unsafe {
+                ptr::write_bytes(buf, *value, len);
+                buf = buf.offset(len as isize);
+            }
+        }
+
+        if remove_until > 0 {
+            self.runs = self.runs.split_off(remove_until);
+        }
+
+        for run in self.runs.iter_mut() {
+            run.end -= len;
+        }
+
+        Ok(len)
+    }
+
+    fn read_to_end(&mut self, mut buf: &mut Vec<u8>) -> io::Result<usize> {
+        buf.reserve(self.len());
+        self.read(&mut buf)
+    }
+
+    fn read_exact(&mut self, mut buf: &mut [u8]) -> io::Result<()> {
+        self.read(&mut buf).map(|_| ())
+    }
+}
+
 /// Immutable `RelVec` iterator over values.
 ///
 /// Can be obtained from the [`iter`](struct.RleVec.html#method.iter) method.
@@ -1051,5 +1094,50 @@ mod tests {
         let rle = RleVec::<i64>::new();
         assert!(rle.starts().is_empty());
         assert!(rle.ends().is_empty());
+    }
+
+    #[test]
+    fn read_trait() {
+        use std::io::Read;
+
+        let mut rle = RleVec::from_slice(&[1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3]);
+
+        let mut buf = [0; 11];
+        rle.read(&mut buf).unwrap();
+        assert_eq!(buf, [1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3]);
+        assert_eq!(rle.len(), 0);
+        assert_eq!(rle.runs_len(), 0);
+
+        let mut rle = RleVec::from_slice(&[1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3]);
+
+        let mut buf = [0; 4];
+        rle.read(&mut buf).unwrap();
+        assert_eq!(buf, [1, 1, 1, 1]);
+        assert_eq!(rle.len(), 7);
+        assert_eq!(rle.runs_len(), 3);
+
+        let mut rle = RleVec::from_slice(&[1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3]);
+
+        let mut buf = [0; 0];
+        rle.read(&mut buf).unwrap();
+        assert_eq!(buf, []);
+        assert_eq!(rle.len(), 11);
+        assert_eq!(rle.runs_len(), 3);
+
+        let mut rle = RleVec::from_slice(&[1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3]);
+
+        let mut buf = [0; 5];
+        rle.read(&mut buf).unwrap();
+        assert_eq!(buf, [1, 1, 1, 1, 1]);
+        assert_eq!(rle.len(), 6);
+        assert_eq!(rle.runs_len(), 2);
+
+        let mut rle = RleVec::from_slice(&[1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3]);
+
+        let mut buf = [0; 8];
+        rle.read(&mut buf).unwrap();
+        assert_eq!(buf, [1, 1, 1, 1, 1, 2, 2, 2]);
+        assert_eq!(rle.len(), 3);
+        assert_eq!(rle.runs_len(), 1);
     }
 }
