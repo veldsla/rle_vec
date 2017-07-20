@@ -637,7 +637,7 @@ impl<'a, T: 'a> Iterator for Iter<'a, T> {
     type Item = &'a T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.rle.is_empty() || self.index == self.rle.len() {
+        if self.index == self.rle.len() {
             return None
         }
         let value = &self.rle.runs[self.run_index].value;
@@ -703,19 +703,39 @@ impl<'a, T: 'a> Iterator for RunIter<'a, T> {
     type Item = Run<&'a T>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.run_index < self.rle.runs.len() {
-            let &InternalRun { ref value, end } = self.rle.runs.index(self.run_index);
-            let len = end - self.last_end + 1;
-            self.run_index += 1;
-            self.last_end = end + 1;
-            Some(Run { len, value })
+        if self.run_index == self.rle.runs.len() {
+            return None
         }
-        else { None }
+        let &InternalRun { ref value, end } = self.rle.runs.index(self.run_index);
+        let len = end - self.last_end + 1;
+        self.run_index += 1;
+        self.last_end = end + 1;
+        Some(Run { len, value })
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
         let len = self.rle.runs.len() - self.run_index;
         (len, Some(len))
+    }
+
+    fn count(self) -> usize {
+        // thanks to the ExactSizeIterator impl
+        self.len()
+    }
+
+    fn last(self) -> Option<Self::Item> {
+        if self.run_index == self.rle.runs.len() {
+            return None
+        }
+        self.rle.last_run()
+    }
+
+    fn nth(&mut self, n: usize) -> Option<Self::Item> {
+        self.run_index = cmp::min(self.run_index + n, self.rle.runs.len());
+        self.last_end = if self.run_index != 0 {
+            self.rle.runs[self.run_index - 1].end + 1
+        } else { 0 };
+        self.next()
     }
 }
 
@@ -865,7 +885,7 @@ mod tests {
         assert_eq!(rle.iter().skip(13).take(2).max(), Some(&90));
         assert_eq!(rle.iter().skip(13).take(2).min(), Some(&0));
 
-        //runiters
+        // iter_run
         assert_eq!(rle.iter_runs().map(|r| r.value).collect::<Vec<_>>(), vec![&0,&1,&3,&123,&0,&90,&99]);
         assert_eq!(rle.iter_runs().map(|r| r.len).collect::<Vec<_>>(), vec![3,7,2,1,1,2,1]);
 
@@ -876,6 +896,35 @@ mod tests {
         assert_eq!(copy.iter().cloned().collect::<Vec<_>>(), v);
         let copy2: RleVec<i32> = rle.iter_runs().map(|r| Run { value: r.value.clone(), len: r.len }).collect();
         assert_eq!(copy2.iter().cloned().collect::<Vec<_>>(), v);
+    }
+
+    #[test]
+    fn run_iters() {
+        let rle = RleVec::from_slice(&[1,1,1,1,1,2,2,2,2,3,3,3,5,5,5,5]);
+
+        let mut iterator = rle.iter_runs();
+
+        assert_eq!(iterator.next(), Some(Run{ len: 5, value: &1 }));
+        assert_eq!(iterator.next(), Some(Run{ len: 4, value: &2 }));
+        assert_eq!(iterator.next(), Some(Run{ len: 3, value: &3 }));
+        assert_eq!(iterator.next(), Some(Run{ len: 4, value: &5 }));
+        assert_eq!(iterator.next(), None);
+        assert_eq!(iterator.next(), None);
+
+        let mut iterator = rle.iter_runs();
+
+        assert_eq!(iterator.nth(0), Some(Run{ len: 5, value: &1 }));
+        assert_eq!(iterator.nth(0), Some(Run{ len: 4, value: &2 }));
+        assert_eq!(iterator.nth(0), Some(Run{ len: 3, value: &3 }));
+        assert_eq!(iterator.nth(0), Some(Run{ len: 4, value: &5 }));
+        assert_eq!(iterator.nth(0), None);
+
+        let mut iterator = rle.iter_runs();
+
+        assert_eq!(iterator.nth(0), Some(Run{ len: 5, value: &1 }));
+        assert_eq!(iterator.nth(1), Some(Run{ len: 3, value: &3 }));
+        assert_eq!(iterator.nth(0), Some(Run{ len: 4, value: &5 }));
+        assert_eq!(iterator.nth(0), None);
     }
 
     #[test]
