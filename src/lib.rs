@@ -387,6 +387,21 @@ impl<T: Eq + Clone> RleVec<T> {
         slice.iter().cloned().collect()
     }
 
+    /// Construct a `Vec<T>` from this `RleVec`.
+    ///
+    /// # Example
+    /// ```
+    /// # use rle_vec::RleVec;
+    /// let slice = &[0, 0, 0, 1, 1, 99, 9];
+    /// let rle = RleVec::from_slice(slice);
+    /// let vec = rle.to_vec();
+    ///
+    /// assert_eq!(vec.as_slice(), slice);
+    /// ```
+    pub fn to_vec(&self) -> Vec<T> {
+        self.iter().cloned().collect()
+    }
+
     /// Modify the value at given index.
     ///
     /// This can result in the breaking of a run and therefore be an expensive operation.
