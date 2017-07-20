@@ -607,6 +607,12 @@ impl<T: Eq> FromIterator<Run<T>> for RleVec<T> {
     }
 }
 
+impl<T> Default for RleVec<T> {
+    fn default() -> Self {
+        RleVec::new()
+    }
+}
+
 /// Immutable `RelVec` iterator over values.
 ///
 /// Can be obtained from the [`iter`](struct.RleVec.html#method.iter) method.
