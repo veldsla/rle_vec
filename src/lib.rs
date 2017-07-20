@@ -494,6 +494,41 @@ impl<T: Eq + Clone> RleVec<T> {
         }
     }
 
+    /// Removes and returns the element at position index, shifting all elements after it to the left.
+    ///
+    /// # Panics
+    /// Panics if index is out of bounds.
+    ///
+    /// # Examples
+    /// ```
+    /// # use rle_vec::RleVec;
+    /// let mut rle = RleVec::from_slice(&[1, 1, 1, 1, 2, 1, 1, 4, 4]);
+    ///
+    /// assert_eq!(rle.remove(4), 2);
+    /// assert_eq!(rle.runs(), 2);
+    /// assert_eq!(rle.to_vec(), vec![1, 1, 1, 1, 1, 1, 4, 4]);
+    /// ```
+    pub fn remove(&mut self, index: usize) -> T {
+        let (p, start, end) = self.index_info(index);
+
+        for run in self.runs[p..].iter_mut() {
+            run.end -= 1;
+        }
+
+        // if size of the run is 1
+        if end - start == 0 {
+            let InternalRun { value, .. } = self.runs.remove(p); // `p + 1` become p
+            // if value before and after are equal
+            if p > 0 && self.runs() > 2 && self.runs[p - 1].value == self.runs[p].value {
+                let after_end = self.runs[p].end;
+                self.runs[p - 1].end = after_end;
+                self.runs.remove(p);
+            }
+            value
+        }
+        else { self.runs[p].value.clone() }
+    }
+
     /// Insert a value at the given index.
     ///
     /// Because the positions of the values after the inserted value need to be changed,
@@ -712,6 +747,31 @@ mod tests {
         rle.set(2, 1);
         assert_eq!((0..10).map(|i| rle[i]).collect::<Vec<_>>(), vec![2,1,1,1,2,2,5,3,3,2]);
         assert_eq!(rle.runs(), 6);
+    }
+
+    #[test]
+    fn removing_values() {
+        let mut rle = RleVec::from_slice(&[1, 1, 1, 1, 1, 2, 1, 1, 1, 4, 4, 3, 3]);
+        assert_eq!(rle.len(), 13);
+        assert_eq!(rle.runs(), 5);
+
+        let value = rle.remove(5);
+        assert_eq!(value, 2);
+        assert_eq!(rle.len(), 12);
+        assert_eq!(rle.runs(), 3);
+        assert_eq!(rle.to_vec(), vec![1, 1, 1, 1, 1, 1, 1, 1, 4, 4, 3, 3]);
+
+        let value = rle.remove(7);
+        assert_eq!(value, 1);
+        assert_eq!(rle.len(), 11);
+        assert_eq!(rle.runs(), 3);
+        assert_eq!(rle.to_vec(), vec![1, 1, 1, 1, 1, 1, 1, 4, 4, 3, 3]);
+
+        let value = rle.remove(10);
+        assert_eq!(value, 3);
+        assert_eq!(rle.len(), 10);
+        assert_eq!(rle.runs(), 3);
+        assert_eq!(rle.to_vec(), vec![1, 1, 1, 1, 1, 1, 1, 4, 4, 3]);
     }
 
     #[test]
