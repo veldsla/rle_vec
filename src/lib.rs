@@ -594,6 +594,11 @@ impl<'a, T: 'a> Iterator for Iter<'a, T> {
         Some(value)
     }
 
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = self.rle.len() - self.index;
+        (len, Some(len))
+    }
+
     fn nth(&mut self, n: usize) -> Option<Self::Item> {
         self.index = cmp::min(self.index + n, self.rle.len());
         self.run_index = if self.index < self.rle.len() {
@@ -604,6 +609,8 @@ impl<'a, T: 'a> Iterator for Iter<'a, T> {
         self.next()
     }
 }
+
+impl<'a, T: 'a> ExactSizeIterator for Iter<'a, T> { }
 
 /// Immutable `RelVec` iterator over runs.
 ///
