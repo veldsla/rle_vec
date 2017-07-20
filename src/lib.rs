@@ -552,13 +552,11 @@ impl<'a, T: 'a> Iterator for RunIter<'a, T> {
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.index < self.rle.runs.len() {
-            let ref r = self.rle.runs[self.index];
-            let length = r.end - self.last_end + 1;
+            let &InternalRun { ref value, end } = self.rle.runs.index(self.index);
+            let length = end - self.last_end + 1;
             self.index += 1;
-            self.last_end = r.end + 1;
-            Some(Run {
-                value: &r.value,
-                length: length })
+            self.last_end = end + 1;
+            Some(Run { value, length })
         }
         else { None }
     }
