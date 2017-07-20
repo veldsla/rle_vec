@@ -1,3 +1,5 @@
+#![feature(specialization)]
+
 //! This crate provides `RleVec`, a vector like structure that stores runs of identical values coded
 //! by the value and the number of repeats.
 //!
@@ -15,7 +17,7 @@
 //! *\*Benchmarks show that setting `vec[idx] = value` is a lot slower than getting `vec[idx]`*
 //!
 
-use std::io;
+use std::io::{self, Read};
 use std::iter::FromIterator;
 use std::iter::once;
 use std::cmp;
@@ -447,21 +449,10 @@ impl<T: Eq> RleVec<T> {
     }
 }
 
-impl<T: Eq + Clone> RleVec<T> {
-    /// Constructs a new `RleVec<T>` from a Vec<T>.
-    /// This consumes the `Vec<T>`
-    ///
-    /// # Examples
-    /// ```
-    /// # use rle_vec::RleVec;
-    /// let rle = RleVec::from_slice(&[0, 0, 0, 1, 1, 99, 9]);
-    /// assert_eq!(rle[3], 1);
-    /// ```
-    pub fn from_slice(slice: &[T]) -> RleVec<T> {
-        slice.iter().cloned().collect()
-    }
-
+impl<T: Clone> RleVec<T> {
     /// Construct a `Vec<T>` from this `RleVec`.
+    ///
+    /// Prefer using `into` **if a copy is not needed**!
     ///
     /// # Example
     /// ```
@@ -474,6 +465,21 @@ impl<T: Eq + Clone> RleVec<T> {
     /// ```
     pub fn to_vec(&self) -> Vec<T> {
         self.iter().cloned().collect()
+    }
+}
+
+impl<T: Eq + Clone> RleVec<T> {
+    /// Constructs a new `RleVec<T>` from a Vec<T>.
+    /// This consumes the `Vec<T>`
+    ///
+    /// # Examples
+    /// ```
+    /// # use rle_vec::RleVec;
+    /// let rle = RleVec::from_slice(&[0, 0, 0, 1, 1, 99, 9]);
+    /// assert_eq!(rle[3], 1);
+    /// ```
+    pub fn from_slice(slice: &[T]) -> RleVec<T> {
+        slice.iter().cloned().collect()
     }
 
     /// Modify the value at given index.
@@ -640,6 +646,20 @@ impl<T> Index<usize> for RleVec<T> {
 
     fn index(&self, index: usize) -> &T {
         &self.runs[self.run_index(index)].value
+    }
+}
+
+default impl<T: Clone> Into<Vec<T>> for RleVec<T> {
+    fn into(self) -> Vec<T> {
+        self.iter().cloned().collect()
+    }
+}
+
+impl Into<Vec<u8>> for RleVec<u8> {
+    fn into(mut self) -> Vec<u8> {
+        let mut vec = Vec::new();
+        self.read_to_end(&mut vec).unwrap();
+        vec
     }
 }
 
