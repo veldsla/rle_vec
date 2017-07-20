@@ -370,11 +370,7 @@ impl<T: Eq + Clone> RleVec<T> {
     /// assert_eq!(rle[3], 1);
     /// ```
     pub fn from_slice(slice: &[T]) -> RleVec<T> {
-        let mut rle = RleVec::new();
-        for value in slice.iter().cloned() {
-            rle.push(value)
-        }
-        rle
+        slice.iter().cloned().collect()
     }
 
     /// Modify the value at given index.
