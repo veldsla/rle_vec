@@ -616,6 +616,14 @@ impl<T: Eq> Extend<T> for RleVec<T> {
     }
 }
 
+impl<T: Eq> Extend<Run<T>> for RleVec<T> {
+    fn extend<I>(&mut self, iter: I) where I: IntoIterator<Item=Run<T>> {
+        for Run{ len, value } in iter {
+            self.push_n(len, value)
+        }
+    }
+}
+
 /// Immutable `RelVec` iterator over values.
 ///
 /// Can be obtained from the [`iter`](struct.RleVec.html#method.iter) method.
