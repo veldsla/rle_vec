@@ -599,6 +599,11 @@ impl<'a, T: 'a> Iterator for Iter<'a, T> {
         (len, Some(len))
     }
 
+    fn count(self) -> usize {
+        // thanks to the ExactSizeIterator impl
+        self.len()
+    }
+
     fn nth(&mut self, n: usize) -> Option<Self::Item> {
         self.index = cmp::min(self.index + n, self.rle.len());
         self.run_index = if self.index < self.rle.len() {
