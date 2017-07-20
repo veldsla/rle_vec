@@ -381,8 +381,23 @@ impl<T: Eq + Clone> RleVec<T> {
     ///
     /// This can result in the breaking of a run and therefore be an expensive operation.
     /// If the value is equal to the value currently present the complexity is
-    /// *O(log n)*. But if the run needs to be broken the complexity increases to a worst case of
-    /// *O((log n) + n)*.
+    /// **O(log n)**. But if the run needs to be broken the complexity increases to a worst case of
+    /// **O((log n) + n)**.
+    ///
+    /// # Example
+    /// ```
+    /// # use rle_vec::RleVec;
+    /// let mut rle = RleVec::from_slice(&[1, 1, 1, 1, 2, 2, 3]);
+    ///
+    /// assert_eq!(rle[2], 1);
+    /// assert_eq!(rle.len(), 7);
+    /// assert_eq!(rle.runs(), 3);
+    ///
+    /// rle.set(2, 3);
+    /// assert_eq!(rle[2], 3);
+    /// assert_eq!(rle.len(), 7);
+    /// assert_eq!(rle.runs(), 5);
+    /// ```
     pub fn set(&mut self, index: usize, value: T) {
         let (mut p, start, end) = self.index_info(index);
 
@@ -441,15 +456,20 @@ impl<T: Eq + Clone> RleVec<T> {
     /// Insert a value at the given index.
     ///
     /// Because the positions of the values after the inserted value need to be changed,
-    /// the complexity of this function is *O((log n) + 2n)*.
-
-    //
-    // insert at pos '4' a '2'
-    //      2 |
-    // 1 1 1 1 2 2 2 3 3 3 4
-    //
-    // real pos '1', start '4', end '6'
-    //
+    /// the complexity of this function is **O((log n) + 2n)**.
+    ///
+    /// # Example
+    /// ```
+    /// # use rle_vec::RleVec;
+    /// let mut rle = RleVec::from_slice(&[1, 1, 1, 1, 2, 2, 3]);
+    ///
+    /// assert_eq!(rle[2], 1);
+    /// assert_eq!(rle.runs(), 3);
+    ///
+    /// rle.insert(2, 3);
+    /// assert_eq!(rle[2], 3);
+    /// assert_eq!(rle.runs(), 5);
+    /// ```
     pub fn insert(&mut self, index: usize, value: T) {
         if index == self.len() {
             return self.push(value);
@@ -469,14 +489,14 @@ impl<T: Eq + Clone> RleVec<T> {
             if p > 0 && self.runs[p - 1].value == value {
                 self.runs[p - 1].end += 1;
             } else {
-                self.runs.insert(p, InternalRun { value: value, end: index });
+                self.runs.insert(p, InternalRun { value, end: index });
             }
         } else {
             // split current run
             self.runs[p].end = index - 1;
-            let v = self.runs[p].value.clone();
-            self.runs.insert(p + 1, InternalRun { value: value, end: index });
-            self.runs.insert(p + 2, InternalRun { value: v, end: end + 1 });
+            self.runs.insert(p + 1, InternalRun { value, end: index });
+            let value = self.runs[p].value.clone();
+            self.runs.insert(p + 2, InternalRun { value, end: end + 1 });
         }
     }
 }
