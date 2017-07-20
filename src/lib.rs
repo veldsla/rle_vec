@@ -30,16 +30,18 @@ use std::ops::Index;
 /// # use rle_vec::RleVec;
 /// let mut rle = RleVec::new();
 ///
-/// rle.push(10); rle.push(10); rle.push(11);
+/// rle.push(10);
+/// rle.push(10);
+/// rle.push(11);
 ///
 /// assert_eq!(rle[1], 10);
 /// assert_eq!(rle[2], 11);
 ///
-/// rle.insert(1,10);
-/// assert_eq!(rle.runs(), 2);
+/// rle.insert(1, 10);
+/// assert_eq!(rle.runs_len(), 2);
 ///
-/// rle.set(0,1);
-/// assert_eq!(rle.runs(), 3);
+/// rle.set(0, 1);
+/// assert_eq!(rle.runs_len(), 3);
 /// ```
 ///
 /// `RleVec` can be constructed from `Iterators` and be iterated over just like a `Vec`.
@@ -51,7 +53,7 @@ use std::ops::Index;
 /// let mut rle: RleVec<_> = v.into_iter().collect();
 ///
 /// assert_eq!(rle.len(), 15);
-/// assert_eq!(rle.runs(), 7);
+/// assert_eq!(rle.runs_len(), 7);
 ///
 /// assert_eq!(rle.iter().nth(10), Some(&4));
 /// ```
@@ -127,7 +129,7 @@ pub struct RleVec<T> {
 /// # use rle_vec::{RleVec, Run};
 /// let rle = RleVec::from_slice(&[1, 1, 1, 1, 2, 2, 3]);
 ///
-/// let mut iterator = rle.iter_runs();
+/// let mut iterator = rle.runs();
 /// assert_eq!(iterator.next(), Some(Run{ len: 4, value: &1 }));
 /// assert_eq!(iterator.next(), Some(Run{ len: 2, value: &2 }));
 /// assert_eq!(iterator.next(), Some(Run{ len: 1, value: &3 }));
@@ -180,7 +182,7 @@ impl<T> RleVec<T> {
     ///
     /// // The rle_vector contains 10 runs and 10 elements too...
     /// assert_eq!(rle.len(), 10);
-    /// assert_eq!(rle.runs(), 10);
+    /// assert_eq!(rle.runs_len(), 10);
     ///
     /// // ...but this may make the rle_vector reallocate
     /// rle.push(11);
@@ -245,17 +247,17 @@ impl<T> RleVec<T> {
     /// ```
     /// # use rle_vec::RleVec;
     /// let mut rle = RleVec::new();
-    /// assert_eq!(rle.runs(), 0);
+    /// assert_eq!(rle.runs_len(), 0);
     ///
     /// rle.push(1);
     /// rle.push(1);
-    /// assert_eq!(rle.runs(), 1);
+    /// assert_eq!(rle.runs_len(), 1);
     ///
     /// rle.push(2);
     /// rle.push(3);
-    /// assert_eq!(rle.runs(), 3);
+    /// assert_eq!(rle.runs_len(), 3);
     /// ```
-    pub fn runs(&self) -> usize {
+    pub fn runs_len(&self) -> usize {
         self.runs.len()
     }
 
@@ -276,7 +278,7 @@ impl<T> RleVec<T> {
     /// ```
     pub fn starts(&self) -> Vec<usize> {
         if self.is_empty() { return Vec::new() }
-        once(0).chain(self.runs.iter().take(self.runs() - 1).map(|r| r.end + 1)).collect()
+        once(0).chain(self.runs.iter().take(self.runs_len() - 1).map(|r| r.end + 1)).collect()
     }
 
     /// Returns the 0-based end coordinates of the runs
@@ -318,15 +320,15 @@ impl<T> RleVec<T> {
     /// rle.push(2);
     /// rle.push(3);
     ///
-    /// let mut iterator = rle.iter_runs();
+    /// let mut iterator = rle.runs();
     ///
     /// assert_eq!(iterator.next(), Some(Run{ len: 2, value: &1 }));
     /// assert_eq!(iterator.next(), Some(Run{ len: 1, value: &2 }));
     /// assert_eq!(iterator.next(), Some(Run{ len: 1, value: &3 }));
     /// assert_eq!(iterator.next(), None);
     /// ```
-    pub fn iter_runs(&self) -> RunIter<T> {
-        RunIter { rle: self, index: 0, last_end: 0 }
+    pub fn runs(&self) -> Runs<T> {
+        Runs { rle: self, index: 0, last_end: 0 }
     }
 
     fn run_index(&self, index: usize) -> usize {
@@ -432,12 +434,12 @@ impl<T: Eq + Clone> RleVec<T> {
     ///
     /// assert_eq!(rle[2], 1);
     /// assert_eq!(rle.len(), 7);
-    /// assert_eq!(rle.runs(), 3);
+    /// assert_eq!(rle.runs_len(), 3);
     ///
     /// rle.set(2, 3);
     /// assert_eq!(rle[2], 3);
     /// assert_eq!(rle.len(), 7);
-    /// assert_eq!(rle.runs(), 5);
+    /// assert_eq!(rle.runs_len(), 5);
     /// ```
     pub fn set(&mut self, index: usize, value: T) {
         let (mut p, start, end) = self.index_info(index);
@@ -505,7 +507,7 @@ impl<T: Eq + Clone> RleVec<T> {
     /// let mut rle = RleVec::from_slice(&[1, 1, 1, 1, 2, 1, 1, 4, 4]);
     ///
     /// assert_eq!(rle.remove(4), 2);
-    /// assert_eq!(rle.runs(), 2);
+    /// assert_eq!(rle.runs_len(), 2);
     /// assert_eq!(rle.to_vec(), vec![1, 1, 1, 1, 1, 1, 4, 4]);
     /// ```
     pub fn remove(&mut self, index: usize) -> T {
@@ -519,7 +521,7 @@ impl<T: Eq + Clone> RleVec<T> {
         if end - start == 0 {
             let InternalRun { value, .. } = self.runs.remove(p); // `p + 1` become p
             // if value before and after are equal
-            if p > 0 && self.runs() > 2 && self.runs[p - 1].value == self.runs[p].value {
+            if p > 0 && self.runs_len() > 2 && self.runs[p - 1].value == self.runs[p].value {
                 let after_end = self.runs[p].end;
                 self.runs[p - 1].end = after_end;
                 self.runs.remove(p);
@@ -540,11 +542,11 @@ impl<T: Eq + Clone> RleVec<T> {
     /// let mut rle = RleVec::from_slice(&[1, 1, 1, 1, 2, 2, 3]);
     ///
     /// assert_eq!(rle[2], 1);
-    /// assert_eq!(rle.runs(), 3);
+    /// assert_eq!(rle.runs_len(), 3);
     ///
     /// rle.insert(2, 3);
     /// assert_eq!(rle[2], 3);
-    /// assert_eq!(rle.runs(), 5);
+    /// assert_eq!(rle.runs_len(), 5);
     /// ```
     pub fn insert(&mut self, index: usize, value: T) {
         if index == self.len() {
@@ -658,26 +660,26 @@ impl<'a, T: 'a> Iterator for Iter<'a, T> {
 
 /// Immutable `RelVec` iterator over runs.
 ///
-/// Can be obtained from the [`iter_runs`](struct.RleVec.html#method.iter_runs) method.
+/// Can be obtained from the [`runs`](struct.RleVec.html#method.runs) method.
 ///
 /// # Example
 /// ```
 /// # use rle_vec::{RleVec, Run};
 /// let rle = RleVec::from_slice(&[1, 1, 1, 1, 2, 2, 3]);
 ///
-/// let mut iterator = rle.iter_runs();
+/// let mut iterator = rle.runs();
 /// assert_eq!(iterator.next(), Some(Run{ len: 4, value: &1 }));
 /// assert_eq!(iterator.next(), Some(Run{ len: 2, value: &2 }));
 /// assert_eq!(iterator.next(), Some(Run{ len: 1, value: &3 }));
 /// assert_eq!(iterator.next(), None);
 /// ```
-pub struct RunIter<'a, T:'a> {
+pub struct Runs<'a, T:'a> {
     rle: &'a RleVec<T>,
     index: usize,
     last_end: usize,
 }
 
-impl<'a, T: 'a> Iterator for RunIter<'a, T> {
+impl<'a, T: 'a> Iterator for Runs<'a, T> {
     type Item = Run<&'a T>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -710,14 +712,14 @@ mod tests {
         rle.push(3);
         rle.push(4);
         assert_eq!(rle.len(), 10);
-        assert_eq!(rle.runs(), 4);
+        assert_eq!(rle.runs_len(), 4);
 
         rle.push_n(3, 4);
         assert_eq!(rle.len(), 13);
-        assert_eq!(rle.runs(), 4);
+        assert_eq!(rle.runs_len(), 4);
         rle.push_n(3, 5);
         assert_eq!(rle.len(), 16);
-        assert_eq!(rle.runs(), 5);
+        assert_eq!(rle.runs_len(), 5);
     }
 
     #[test]
@@ -726,7 +728,7 @@ mod tests {
         rle.push(1);
         rle.set(0, 10);
         assert_eq!(rle.len(), 1);
-        assert_eq!(rle.runs(), 1);
+        assert_eq!(rle.runs_len(), 1);
         assert_eq!(rle[0], 10);
 
         let mut rle = RleVec::from_slice(&[1, 1, 1, 1, 2, 2, 2, 3, 3, 4]);
@@ -746,31 +748,31 @@ mod tests {
         assert_eq!((0..10).map(|i| rle[i]).collect::<Vec<_>>(), vec![2,1,4,1,2,2,5,3,3,2]);
         rle.set(2, 1);
         assert_eq!((0..10).map(|i| rle[i]).collect::<Vec<_>>(), vec![2,1,1,1,2,2,5,3,3,2]);
-        assert_eq!(rle.runs(), 6);
+        assert_eq!(rle.runs_len(), 6);
     }
 
     #[test]
     fn removing_values() {
         let mut rle = RleVec::from_slice(&[1, 1, 1, 1, 1, 2, 1, 1, 1, 4, 4, 3, 3]);
         assert_eq!(rle.len(), 13);
-        assert_eq!(rle.runs(), 5);
+        assert_eq!(rle.runs_len(), 5);
 
         let value = rle.remove(5);
         assert_eq!(value, 2);
         assert_eq!(rle.len(), 12);
-        assert_eq!(rle.runs(), 3);
+        assert_eq!(rle.runs_len(), 3);
         assert_eq!(rle.to_vec(), vec![1, 1, 1, 1, 1, 1, 1, 1, 4, 4, 3, 3]);
 
         let value = rle.remove(7);
         assert_eq!(value, 1);
         assert_eq!(rle.len(), 11);
-        assert_eq!(rle.runs(), 3);
+        assert_eq!(rle.runs_len(), 3);
         assert_eq!(rle.to_vec(), vec![1, 1, 1, 1, 1, 1, 1, 4, 4, 3, 3]);
 
         let value = rle.remove(10);
         assert_eq!(value, 3);
         assert_eq!(rle.len(), 10);
-        assert_eq!(rle.runs(), 3);
+        assert_eq!(rle.runs_len(), 3);
         assert_eq!(rle.to_vec(), vec![1, 1, 1, 1, 1, 1, 1, 4, 4, 3]);
     }
 
@@ -792,17 +794,17 @@ mod tests {
         rle.insert(2,0);
         v.insert(2,0);
         assert_eq!((0..rle.len()).map(|i| rle[i]).collect::<Vec<_>>(), v);
-        assert_eq!(rle.runs(),9);
+        assert_eq!(rle.runs_len(), 9);
 
         rle.insert(8,0);
         v.insert(8,0);
         assert_eq!((0..rle.len()).map(|i| rle[i]).collect::<Vec<_>>(), v);
-        assert_eq!(rle.runs(),11);
+        assert_eq!(rle.runs_len(), 11);
 
         rle.insert(13,4);
         v.insert(13,4);
         assert_eq!((0..rle.len()).map(|i| rle[i]).collect::<Vec<_>>(), v);
-        assert_eq!(rle.runs(),12);
+        assert_eq!(rle.runs_len(), 12);
 
         let v = vec![0,0,0,1,1,1,1,2,2,3];
         let mut rle: RleVec<_> = v.into_iter().collect();
@@ -862,15 +864,15 @@ mod tests {
         assert_eq!(rle.iter().skip(13).take(2).min(), Some(&0));
 
         //runiters
-        assert_eq!(rle.iter_runs().map(|r| r.value).collect::<Vec<_>>(), vec![&0,&1,&3,&123,&0,&90,&99]);
-        assert_eq!(rle.iter_runs().map(|r| r.len).collect::<Vec<_>>(), vec![3,7,2,1,1,2,1]);
+        assert_eq!(rle.runs().map(|r| r.value).collect::<Vec<_>>(), vec![&0,&1,&3,&123,&0,&90,&99]);
+        assert_eq!(rle.runs().map(|r| r.len).collect::<Vec<_>>(), vec![3,7,2,1,1,2,1]);
 
         let mut copy = RleVec::new();
-        for r in rle.iter_runs() {
+        for r in rle.runs() {
             copy.push_n(r.len, r.value.clone());
         }
         assert_eq!(copy.iter().cloned().collect::<Vec<_>>(), v);
-        let copy2: RleVec<i32> = rle.iter_runs().map(|r| Run { value: r.value.clone(), len: r.len }).collect();
+        let copy2: RleVec<i32> = rle.runs().map(|r| Run { value: r.value.clone(), len: r.len }).collect();
         assert_eq!(copy2.iter().cloned().collect::<Vec<_>>(), v);
     }
 
