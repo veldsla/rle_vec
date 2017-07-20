@@ -128,13 +128,15 @@ pub struct RleVec<T> {
 /// let rle = RleVec::from_slice(&[1, 1, 1, 1, 2, 2, 3]);
 ///
 /// let mut iterator = rle.iter_runs();
-/// assert_eq!(iterator.next(), Some(Run{ value: &1, length: 4 }));
-/// assert_eq!(iterator.next(), Some(Run{ value: &2, length: 2 }));
-/// assert_eq!(iterator.next(), Some(Run{ value: &3, length: 1 }));
+/// assert_eq!(iterator.next(), Some(Run{ value: &1, len: 4 }));
+/// assert_eq!(iterator.next(), Some(Run{ value: &2, len: 2 }));
+/// assert_eq!(iterator.next(), Some(Run{ value: &3, len: 1 }));
 /// ```
 #[derive(Debug, PartialEq, Eq)]
 pub struct Run<T> {
-    pub length: usize,
+    /// The length of this run.
+    pub len: usize,
+    /// The value of this run.
     pub value: T,
 }
 
@@ -532,7 +534,7 @@ impl<T: Eq> FromIterator<Run<T>> for RleVec<T> {
     fn from_iter<I: IntoIterator<Item=Run<T>>>(iter: I) -> Self {
         let mut rle = RleVec::new();
         for run in iter {
-            rle.push_n(run.length, run.value);
+            rle.push_n(run.len, run.value);
         }
         rle
     }
@@ -582,10 +584,10 @@ impl<'a, T: 'a> Iterator for RunIter<'a, T> {
     fn next(&mut self) -> Option<Self::Item> {
         if self.index < self.rle.runs.len() {
             let &InternalRun { ref value, end } = self.rle.runs.index(self.index);
-            let length = end - self.last_end + 1;
+            let len = end - self.last_end + 1;
             self.index += 1;
             self.last_end = end + 1;
-            Some(Run { value, length })
+            Some(Run { len, value })
         }
         else { None }
     }
@@ -737,14 +739,14 @@ mod tests {
 
         //runiters
         assert_eq!(rle.iter_runs().map(|r| r.value).collect::<Vec<_>>(), vec![&0,&1,&3,&123,&0,&90,&99]);
-        assert_eq!(rle.iter_runs().map(|r| r.length).collect::<Vec<_>>(), vec![3,7,2,1,1,2,1]);
+        assert_eq!(rle.iter_runs().map(|r| r.len).collect::<Vec<_>>(), vec![3,7,2,1,1,2,1]);
 
         let mut copy = RleVec::new();
         for r in rle.iter_runs() {
-            copy.push_n(r.length, r.value.clone());
+            copy.push_n(r.len, r.value.clone());
         }
         assert_eq!(copy.iter().cloned().collect::<Vec<_>>(), v);
-        let copy2: RleVec<i32> = rle.iter_runs().map(|r| Run { value: r.value.clone(), length: r.length }).collect();
+        let copy2: RleVec<i32> = rle.iter_runs().map(|r| Run { value: r.value.clone(), len: r.len }).collect();
         assert_eq!(copy2.iter().cloned().collect::<Vec<_>>(), v);
     }
 
