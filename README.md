@@ -96,7 +96,7 @@ test create_1000_runs_length_5     ... bench:       9,990 ns/iter (+/- 857)
 test create_vec_1000_runs_length_5 ... bench:       7,553 ns/iter (+/- 385)
 
 test index_100_from_test           ... bench:       2,107 ns/iter (+/- 73)
-test index_100_from_slic           ... bench:          59 ns/iter (+/- 2)
+test index_100_from_slice          ... bench:          59 ns/iter (+/- 2)
 
 test insert_100_vec                ... bench:      50,248 ns/iter (+/- 1,945)
 test insert_100_with_split         ... bench:      57,934 ns/iter (+/- 4,008)

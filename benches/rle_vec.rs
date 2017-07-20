@@ -75,7 +75,7 @@ fn set_100_with_split(b: &mut Bencher) {
             v += 10;
         }
         assert_eq!(r.len(), 5000);
-        assert_eq!(r.n_runs(), 1200);
+        assert_eq!(r.runs(), 1200);
     });
 }
 
@@ -91,7 +91,7 @@ fn set_100_without_split(b: &mut Bencher) {
             v += 10;
         }
         assert_eq!(r.len(), 5000);
-        assert_eq!(r.n_runs(), 1000);
+        assert_eq!(r.runs(), 1000);
     });
 }
 
@@ -120,7 +120,7 @@ fn insert_100_with_split(b: &mut Bencher) {
             i += 50 + 1;
         }
         assert_eq!(r.len(), 5100);
-        assert_eq!(r.n_runs(), 1200);
+        assert_eq!(r.runs(), 1200);
     });
 }
 
@@ -136,7 +136,7 @@ fn insert_100_without_split(b: &mut Bencher) {
             v += 10;
         }
         assert_eq!(r.len(), 5100);
-        assert_eq!(r.n_runs(), 1000);
+        assert_eq!(r.runs(), 1000);
     });
 }
 
