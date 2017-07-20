@@ -223,6 +223,60 @@ impl<T> RleVec<T> {
         self.runs.is_empty()
     }
 
+    /// Returns the last value, or None if it is empty.
+    ///
+    /// # Example
+    /// ```
+    /// # use rle_vec::RleVec;
+    /// let rle = RleVec::from_slice(&[10, 10, 40, 40, 30]);
+    /// assert_eq!(rle.last(), Some(&30));
+    ///
+    /// let rle = RleVec::<i32>::new();
+    /// assert_eq!(rle.last(), None);
+    /// ```
+    pub fn last(&self) -> Option<&T> {
+        match self.runs.last() {
+            Some(last) => Some(&last.value),
+            None => None,
+        }
+    }
+
+    /// Returns the last run, or None if it is empty.
+    ///
+    /// # Example
+    /// ```
+    /// # use rle_vec::{RleVec, Run};
+    /// let mut rle = RleVec::new();
+    ///
+    /// assert_eq!(rle.last_run(), None);
+    ///
+    /// rle.push(1);
+    /// rle.push(1);
+    /// rle.push(1);
+    /// rle.push(1);
+    ///
+    /// assert_eq!(rle.last_run(), Some(Run{ len: 4, value: &1 }));
+    ///
+    /// rle.push(2);
+    /// rle.push(2);
+    /// rle.push(3);
+    ///
+    /// assert_eq!(rle.last_run(), Some(Run{ len: 1, value: &3 }));
+    /// ```
+    pub fn last_run(&self) -> Option<Run<&T>> {
+        let previous_end = if self.runs.len() >= 2 {
+            self.runs[self.runs.len() - 2].end + 1
+        } else { 0 };
+
+        match self.runs.last() {
+            Some(last) => Some(Run {
+                len: last.end + 1 - previous_end,
+                value: &last.value
+            }),
+            None => None,
+        }
+    }
+
     /// Returns the number of runs
     ///
     /// # Example
@@ -602,6 +656,13 @@ impl<'a, T: 'a> Iterator for Iter<'a, T> {
     fn count(self) -> usize {
         // thanks to the ExactSizeIterator impl
         self.len()
+    }
+
+    fn last(self) -> Option<Self::Item> {
+        if self.index == self.rle.len() {
+            return None
+        }
+        self.rle.last()
     }
 
     fn nth(&mut self, n: usize) -> Option<Self::Item> {
