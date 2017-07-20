@@ -310,7 +310,7 @@ impl<T> RleVec<T> {
     /// assert_eq!(iterator.next(), None);
     /// ```
     pub fn iter_runs(&self) -> RunIter<T> {
-        RunIter { rle: self, index: 0, last_end: 0 }
+        RunIter { rle: self, run_index: 0, last_end: 0 }
     }
 
     fn run_index(&self, index: usize) -> usize {
@@ -629,7 +629,7 @@ impl<'a, T: 'a> ExactSizeIterator for Iter<'a, T> { }
 /// ```
 pub struct RunIter<'a, T:'a> {
     rle: &'a RleVec<T>,
-    index: usize,
+    run_index: usize,
     last_end: usize,
 }
 
@@ -637,16 +637,23 @@ impl<'a, T: 'a> Iterator for RunIter<'a, T> {
     type Item = Run<&'a T>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.index < self.rle.runs.len() {
-            let &InternalRun { ref value, end } = self.rle.runs.index(self.index);
+        if self.run_index < self.rle.runs.len() {
+            let &InternalRun { ref value, end } = self.rle.runs.index(self.run_index);
             let len = end - self.last_end + 1;
-            self.index += 1;
+            self.run_index += 1;
             self.last_end = end + 1;
             Some(Run { len, value })
         }
         else { None }
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = self.rle.runs.len() - self.run_index;
+        (len, Some(len))
+    }
 }
+
+impl<'a, T: 'a> ExactSizeIterator for RunIter<'a, T> { }
 
 #[cfg(test)]
 mod tests {
