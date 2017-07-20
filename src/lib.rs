@@ -128,9 +128,9 @@ pub struct RleVec<T> {
 /// let rle = RleVec::from_slice(&[1, 1, 1, 1, 2, 2, 3]);
 ///
 /// let mut iterator = rle.iter_runs();
-/// assert_eq!(iterator.next(), Some(Run{ value: &1, len: 4 }));
-/// assert_eq!(iterator.next(), Some(Run{ value: &2, len: 2 }));
-/// assert_eq!(iterator.next(), Some(Run{ value: &3, len: 1 }));
+/// assert_eq!(iterator.next(), Some(Run{ len: 4, value: &1 }));
+/// assert_eq!(iterator.next(), Some(Run{ len: 2, value: &2 }));
+/// assert_eq!(iterator.next(), Some(Run{ len: 1, value: &3 }));
 /// ```
 #[derive(Debug, PartialEq, Eq)]
 pub struct Run<T> {
@@ -295,20 +295,19 @@ impl<T> RleVec<T> {
     ///
     /// # Example
     /// ```
-    /// # use rle_vec::RleVec;
+    /// # use rle_vec::{RleVec, Run};
     /// let mut rle = RleVec::new();
     /// rle.push(1);
     /// rle.push(1);
     /// rle.push(2);
     /// rle.push(3);
-    // ///
-    // /// let mut iterator = rle.iter_runs();
-    // ///
-    // /// assert_eq!(iterator.next(), Some(&1));
-    // /// assert_eq!(iterator.next(), Some(&1));
-    // /// assert_eq!(iterator.next(), Some(&2));
-    // /// assert_eq!(iterator.next(), Some(&3));
-    // /// assert_eq!(iterator.next(), None);
+    ///
+    /// let mut iterator = rle.iter_runs();
+    ///
+    /// assert_eq!(iterator.next(), Some(Run{ len: 2, value: &1 }));
+    /// assert_eq!(iterator.next(), Some(Run{ len: 1, value: &2 }));
+    /// assert_eq!(iterator.next(), Some(Run{ len: 1, value: &3 }));
+    /// assert_eq!(iterator.next(), None);
     /// ```
     pub fn iter_runs(&self) -> RunIter<T> {
         RunIter { rle: self, index: 0, last_end: 0 }
@@ -540,6 +539,25 @@ impl<T: Eq> FromIterator<Run<T>> for RleVec<T> {
     }
 }
 
+/// Immutable `RelVec` iterator over values.
+///
+/// Can be obtained from the [`iter`](struct.RleVec.html#method.iter) method.
+///
+/// # Example
+/// ```
+/// # use rle_vec::RleVec;
+/// let rle = RleVec::from_slice(&[1, 1, 1, 1, 2, 2, 3]);
+///
+/// let mut iterator = rle.iter();
+/// assert_eq!(iterator.next(), Some(&1));
+/// assert_eq!(iterator.next(), Some(&1));
+/// assert_eq!(iterator.next(), Some(&1));
+/// assert_eq!(iterator.next(), Some(&1));
+/// assert_eq!(iterator.next(), Some(&2));
+/// assert_eq!(iterator.next(), Some(&2));
+/// assert_eq!(iterator.next(), Some(&3));
+/// assert_eq!(iterator.next(), None);
+/// ```
 pub struct Iter<'a, T: 'a> {
     rle: &'a RleVec<T>,
     run_index: usize,
@@ -572,6 +590,21 @@ impl<'a, T: 'a> Iterator for Iter<'a, T> {
     }
 }
 
+/// Immutable `RelVec` iterator over runs.
+///
+/// Can be obtained from the [`iter_runs`](struct.RleVec.html#method.iter_runs) method.
+///
+/// # Example
+/// ```
+/// # use rle_vec::{RleVec, Run};
+/// let rle = RleVec::from_slice(&[1, 1, 1, 1, 2, 2, 3]);
+///
+/// let mut iterator = rle.iter_runs();
+/// assert_eq!(iterator.next(), Some(Run{ len: 4, value: &1 }));
+/// assert_eq!(iterator.next(), Some(Run{ len: 2, value: &2 }));
+/// assert_eq!(iterator.next(), Some(Run{ len: 1, value: &3 }));
+/// assert_eq!(iterator.next(), None);
+/// ```
 pub struct RunIter<'a, T:'a> {
     rle: &'a RleVec<T>,
     index: usize,
