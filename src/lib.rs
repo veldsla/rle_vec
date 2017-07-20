@@ -119,7 +119,20 @@ pub struct RleVec<T> {
     runs: Vec<InternalRun<T>>,
 }
 
-#[derive(Debug)]
+/// Represent a run inside the `RleVec`, can be obtained from the [`iter_runs`](struct.RleVec.html#method.iter_runs). A run is a serie of the same value.
+///
+/// # Example
+///
+/// ```
+/// # use rle_vec::{RleVec, Run};
+/// let rle = RleVec::from_slice(&[1, 1, 1, 1, 2, 2, 3]);
+///
+/// let mut iterator = rle.iter_runs();
+/// assert_eq!(iterator.next(), Some(Run{ value: &1, length: 4 }));
+/// assert_eq!(iterator.next(), Some(Run{ value: &2, length: 2 }));
+/// assert_eq!(iterator.next(), Some(Run{ value: &3, length: 1 }));
+/// ```
+#[derive(Debug, PartialEq, Eq)]
 pub struct Run<T> {
     pub length: usize,
     pub value: T,
@@ -731,7 +744,7 @@ mod tests {
             copy.push_n(r.length, r.value.clone());
         }
         assert_eq!(copy.iter().cloned().collect::<Vec<_>>(), v);
-        let copy2: RleVec<_> = rle.iter_runs().map(|r| Run { value: r.value.clone(), length: r.length }).collect();
+        let copy2: RleVec<i32> = rle.iter_runs().map(|r| Run { value: r.value.clone(), length: r.length }).collect();
         assert_eq!(copy2.iter().cloned().collect::<Vec<_>>(), v);
     }
 
