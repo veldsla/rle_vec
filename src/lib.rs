@@ -600,10 +600,11 @@ impl<T: Eq> FromIterator<T> for RleVec<T> {
 
 impl<T: Eq> FromIterator<Run<T>> for RleVec<T> {
     fn from_iter<I: IntoIterator<Item=Run<T>>>(iter: I) -> Self {
-        let mut rle = RleVec::new();
-        for run in iter {
-            rle.push_n(run.len, run.value);
-        }
+        let iter = iter.into_iter();
+        let (lower, _) = iter.size_hint();
+
+        let mut rle = RleVec::with_capacity(lower);
+        rle.extend(iter);
         rle
     }
 }
