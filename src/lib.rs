@@ -116,7 +116,7 @@ use std::ops::Index;
 /// if the rle_vector's length is increased to 11, it will have to reallocate, which
 /// can be slow. For this reason, it is recommended to use `RleVec::with_capacity`
 /// whenever possible to specify how big the rle_vector is expected to get.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct RleVec<T> {
     runs: Vec<InternalRun<T>>,
 }
@@ -134,7 +134,7 @@ pub struct RleVec<T> {
 /// assert_eq!(iterator.next(), Some(Run{ len: 2, value: &2 }));
 /// assert_eq!(iterator.next(), Some(Run{ len: 1, value: &3 }));
 /// ```
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Run<T> {
     /// The length of this run.
     pub len: usize,
@@ -142,7 +142,7 @@ pub struct Run<T> {
     pub value: T,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 struct InternalRun<T> {
     end: usize,
     value: T,
