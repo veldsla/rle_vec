@@ -589,17 +589,15 @@ impl<T> Index<usize> for RleVec<T> {
 }
 
 impl<T: Eq> FromIterator<T> for RleVec<T> {
-    fn from_iter<I: IntoIterator<Item=T>>(iter: I) -> Self {
+    fn from_iter<I>(iter: I) -> Self where I: IntoIterator<Item=T> {
         let mut rle = RleVec::new();
-        for i in iter {
-            rle.push(i);
-        }
+        rle.extend(iter);
         rle
     }
 }
 
 impl<T: Eq> FromIterator<Run<T>> for RleVec<T> {
-    fn from_iter<I: IntoIterator<Item=Run<T>>>(iter: I) -> Self {
+    fn from_iter<I>(iter: I) -> Self where I: IntoIterator<Item=Run<T>> {
         let iter = iter.into_iter();
         let (lower, _) = iter.size_hint();
 
