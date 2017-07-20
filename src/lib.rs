@@ -223,6 +223,22 @@ impl<T> RleVec<T> {
         self.runs.is_empty()
     }
 
+    /// Clears the vector, removing all values.
+    ///
+    /// Note that this method has no effect on the allocated capacity of the vector.
+    ///
+    /// # Examples
+    /// ```
+    /// # use rle_vec::RleVec;
+    /// let mut rle = RleVec::from_slice(&[1, 1, 1, 1, 2, 2, 3]);
+    ///
+    /// rle.clear();
+    /// assert!(rle.is_empty());
+    /// ```
+    pub fn clear(&mut self) {
+        self.runs.clear()
+    }
+
     /// Returns the number of runs
     ///
     /// # Example
