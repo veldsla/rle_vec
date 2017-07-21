@@ -87,24 +87,48 @@ cannot work for `RleVec`.
 
 ## Benchmarks
 
-Cargo bench can be used to compare the real life difference of get/set/insert operations on a `Vec`
-and `RleVec`. The test data is a vector of length 5000 that contains 1000 runs of length 5.
+`Cargo bench` can be used to compare the real life difference of get/set/insert/remove operations on a `Vec` and `RleVec`.
+
+Note that benches that needs mutable structs (set/insert/remove) will recreate the vector each time.
 
 ```
-running 10 tests
-test create_1000_runs_length_5     ... bench:       9,990 ns/iter (+/- 857)
-test create_vec_1000_runs_length_5 ... bench:       7,553 ns/iter (+/- 385)
+rle_loop_10_000_equal_values      ... bench:     161,405 ns/iter (+/- 17,573)
+vec_loop_10_000_equal_values      ... bench:       7,653 ns/iter (+/- 616)
 
-test index_100_from_test           ... bench:       2,107 ns/iter (+/- 73)
-test index_100_from_slice          ... bench:          59 ns/iter (+/- 2)
+rle_loop_10_000_runs_of_10_values ... bench:     163,949 ns/iter (+/- 14,492)
+vec_loop_10_000_runs_of_10_values ... bench:       5,612 ns/iter (+/- 612)
 
-test insert_100_vec                ... bench:      50,248 ns/iter (+/- 1,945)
-test insert_100_with_split         ... bench:      57,934 ns/iter (+/- 4,008)
-test insert_100_without_split      ... bench:      27,416 ns/iter (+/- 801)
+rle_loop_10_000_unique_values     ... bench:     166,887 ns/iter (+/- 19,187)
+vec_loop_10_000_unique_values     ... bench:      11,307 ns/iter (+/- 1,175)
 
-test set_100_vec                   ... bench:       7,453 ns/iter (+/- 286)
-test set_100_with_split            ... bench:      42,654 ns/iter (+/- 1,055)
-test set_100_without_split         ... bench:      12,094 ns/iter (+/- 234)
+
+rle_insert_middle_breaking_10_000_runs_of_10_values     ... bench:      92,742 ns/iter (+/- 11,082)
+rle_insert_middle_non_breaking_10_000_runs_of_10_values ... bench:      95,317 ns/iter (+/- 12,639)
+vec_insert_middle_10_000_runs_of_10_values              ... bench:     103,501 ns/iter (+/- 17,365)
+
+
+rle_remove_middle_breaking_10_000_unique_values         ... bench:     102,300 ns/iter (+/- 11,241)
+rle_remove_middle_non_breaking_10_000_runs_of_10_values ... bench:      94,748 ns/iter (+/- 10,388)
+vec_remove_middle_10_000_runs_of_10_values              ... bench:     104,008 ns/iter (+/- 13,896)
+
+
+rle_set_middle_10_000_equal_values            ... bench:      46,219 ns/iter (+/- 5,695)
+vec_set_middle_10_000_equal_values            ... bench:      58,268 ns/iter (+/- 7,255)
+
+rle_set_middle_10_000_runs_of_10_values       ... bench:      94,895 ns/iter (+/- 13,902)
+vec_set_middle_10_000_runs_of_10_values       ... bench:     104,953 ns/iter (+/- 10,561)
+
+rle_set_middle_10_000_unique_values           ... bench:     108,793 ns/iter (+/- 47,550)
+vec_set_middle_10_000_unique_values           ... bench:       3,952 ns/iter (+/- 635)
+
+rle_set_middle_same_value_10_000_equal_values ... bench:      52,549 ns/iter (+/- 46,953)
+vec_set_middle_same_value_10_000_equal_values ... bench:      57,428 ns/iter (+/- 6,448)
+
+
+rle_to_vec_of_u8_10_000_equal_values  ... bench:     225,858 ns/iter (+/- 21,944)
+rle_to_vec_of_u16_10_000_equal_values ... bench:     222,045 ns/iter (+/- 27,802)
+rle_to_vec_of_u32_10_000_equal_values ... bench:     215,114 ns/iter (+/- 24,490)
+rle_to_vec_of_u64_10_000_equal_values ... bench:     256,898 ns/iter (+/- 158,647)
 ```
 
 Inserting data is very competitive and can be faster if no run breaking is
