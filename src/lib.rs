@@ -760,9 +760,9 @@ impl io::Read for RleVec<u8> {
     }
 }
 
-/// Immutable `RelVec` iterator over values.
+/// Immutable `RelVec` iterator over references of values.
 ///
-/// Can be obtained from the [`iter`](struct.RleVec.html#method.iter) method.
+/// Can be obtained from the [`iter`](struct.RleVec.html#method.iter) or the `into_iter` methods.
 ///
 /// # Example
 /// ```
@@ -783,6 +783,15 @@ pub struct Iter<'a, T: 'a> {
     rle: &'a RleVec<T>,
     run_index: usize,
     index: usize,
+}
+
+impl<'a, T: 'a> IntoIterator for &'a RleVec<T> {
+    type Item = &'a T;
+    type IntoIter = Iter<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        Iter { rle: &self, run_index: 0, index: 0 }
+    }
 }
 
 impl<'a, T: 'a> Iterator for Iter<'a, T> {
@@ -829,6 +838,85 @@ impl<'a, T: 'a> Iterator for Iter<'a, T> {
 }
 
 impl<'a, T: 'a> ExactSizeIterator for Iter<'a, T> { }
+
+/// Immutable `RelVec` iterator over values.
+///
+/// Can be obtained from the `into_iter` method.
+///
+/// # Example
+/// ```
+/// # use rle_vec::RleVec;
+/// let rle = RleVec::from_slice(&[1, 1, 1, 1, 2, 2, 3]);
+///
+/// let mut iterator = rle.into_iter();
+/// assert_eq!(iterator.next(), Some(1));
+/// assert_eq!(iterator.next(), Some(1));
+/// assert_eq!(iterator.next(), Some(1));
+/// assert_eq!(iterator.next(), Some(1));
+/// assert_eq!(iterator.next(), Some(2));
+/// assert_eq!(iterator.next(), Some(2));
+/// assert_eq!(iterator.next(), Some(3));
+/// assert_eq!(iterator.next(), None);
+/// ```
+pub struct IntoIter<T> {
+    rle: RleVec<T>,
+    run_index: usize,
+    index: usize,
+}
+
+impl<T: Clone> IntoIterator for RleVec<T> {
+    type Item = T;
+    type IntoIter = IntoIter<T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        IntoIter { rle: self, run_index: 0, index: 0 }
+    }
+}
+
+impl<T: Clone> Iterator for IntoIter<T> {
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index == self.rle.len() {
+            return None
+        }
+        let value = self.rle.runs[self.run_index].value.clone();
+        self.index += 1;
+        if self.index > self.rle.runs[self.run_index].end {
+            self.run_index += 1;
+        }
+        Some(value)
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = self.rle.len() - self.index;
+        (len, Some(len))
+    }
+
+    fn count(self) -> usize {
+        // thanks to the ExactSizeIterator impl
+        self.len()
+    }
+
+    fn last(self) -> Option<Self::Item> {
+        if self.index == self.rle.len() {
+            return None
+        }
+        self.rle.last().cloned()
+    }
+
+    fn nth(&mut self, n: usize) -> Option<Self::Item> {
+        self.index = cmp::min(self.index + n, self.rle.len());
+        self.run_index = if self.index < self.rle.len() {
+            self.rle.run_index(self.index)
+        } else {
+            self.rle.runs.len() - 1
+        };
+        self.next()
+    }
+}
+
+impl<T: Clone> ExactSizeIterator for IntoIter<T> { }
 
 /// Immutable `RelVec` iterator over runs.
 ///
