@@ -45,10 +45,10 @@ assert_eq!(rle[1], 10);
 assert_eq!(rle[2], 11);
 
 rle.insert(1, 10);
-assert_eq!(rle.n_runs(), 2);
+assert_eq!(rle.runs_len(), 2);
 
-rle.set(0, 1);
-assert_eq!(rle.n_runs(), 3);
+rle.set(0, 10);
+assert_eq!(rle.runs_len(), 3);
 ```
 
 `RleVec` can be constructed from `Iterators` and be iterated over just like a `Vec`.
@@ -60,7 +60,7 @@ let v = vec![0, 0, 0, 1, 1, 1, 1, 2, 2, 3, 4, 5, 4, 4, 4];
 
 let mut rle: RleVec<_> = v.into_iter().collect();
 assert_eq!(rle.len(), 15);
-assert_eq!(rle.n_runs(), 7);
+assert_eq!(rle.runs_len(), 7);
 
 assert_eq!(rle.iter().nth(10), Some(&4));
 ```
