@@ -131,7 +131,7 @@ pub struct RleVec<T> {
 ///
 /// ```
 /// # use rle_vec::{RleVec, Run};
-/// let rle = RleVec::from_slice(&[1, 1, 1, 1, 2, 2, 3]);
+/// let rle = RleVec::from(&[1, 1, 1, 1, 2, 2, 3][..]);
 ///
 /// let mut iterator = rle.runs();
 /// assert_eq!(iterator.next(), Some(Run{ len: 4, value: &1 }));
@@ -236,7 +236,7 @@ impl<T> RleVec<T> {
     /// # Examples
     /// ```
     /// # use rle_vec::RleVec;
-    /// let mut rle = RleVec::from_slice(&[1, 1, 1, 1, 2, 2, 3]);
+    /// let mut rle = RleVec::from(&[1, 1, 1, 1, 2, 2, 3][..]);
     ///
     /// rle.clear();
     /// assert!(rle.is_empty());
@@ -250,7 +250,7 @@ impl<T> RleVec<T> {
     /// # Example
     /// ```
     /// # use rle_vec::RleVec;
-    /// let rle = RleVec::from_slice(&[10, 10, 40, 40, 30]);
+    /// let rle = RleVec::from(&[10, 10, 40, 40, 30][..]);
     /// assert_eq!(rle.last(), Some(&30));
     ///
     /// let rle = RleVec::<i32>::new();
@@ -458,7 +458,7 @@ impl<T: Clone> RleVec<T> {
     /// ```
     /// # use rle_vec::RleVec;
     /// let slice = &[0, 0, 0, 1, 1, 99, 9];
-    /// let rle = RleVec::from_slice(slice);
+    /// let rle = RleVec::from(&slice[..]);
     /// let vec = rle.to_vec();
     ///
     /// assert_eq!(vec.as_slice(), slice);
@@ -469,19 +469,6 @@ impl<T: Clone> RleVec<T> {
 }
 
 impl<T: Eq + Clone> RleVec<T> {
-    /// Constructs a new `RleVec<T>` from a Vec<T>.
-    /// This consumes the `Vec<T>`
-    ///
-    /// # Examples
-    /// ```
-    /// # use rle_vec::RleVec;
-    /// let rle = RleVec::from_slice(&[0, 0, 0, 1, 1, 99, 9]);
-    /// assert_eq!(rle[3], 1);
-    /// ```
-    pub fn from_slice(slice: &[T]) -> RleVec<T> {
-        slice.iter().cloned().collect()
-    }
-
     /// Modify the value at given index.
     ///
     /// This can result in the breaking of a run and therefore be an expensive operation.
@@ -492,7 +479,7 @@ impl<T: Eq + Clone> RleVec<T> {
     /// # Example
     /// ```
     /// # use rle_vec::RleVec;
-    /// let mut rle = RleVec::from_slice(&[1, 1, 1, 1, 2, 2, 3]);
+    /// let mut rle = RleVec::from(&[1, 1, 1, 1, 2, 2, 3][..]);
     ///
     /// assert_eq!(rle[2], 1);
     /// assert_eq!(rle.len(), 7);
@@ -566,7 +553,7 @@ impl<T: Eq + Clone> RleVec<T> {
     /// # Examples
     /// ```
     /// # use rle_vec::RleVec;
-    /// let mut rle = RleVec::from_slice(&[1, 1, 1, 1, 2, 1, 1, 4, 4]);
+    /// let mut rle = RleVec::from(&[1, 1, 1, 1, 2, 1, 1, 4, 4][..]);
     ///
     /// assert_eq!(rle.remove(4), 2);
     /// assert_eq!(rle.runs_len(), 2);
@@ -601,7 +588,7 @@ impl<T: Eq + Clone> RleVec<T> {
     /// # Example
     /// ```
     /// # use rle_vec::RleVec;
-    /// let mut rle = RleVec::from_slice(&[1, 1, 1, 1, 2, 2, 3]);
+    /// let mut rle = RleVec::from(&[1, 1, 1, 1, 2, 2, 3][..]);
     ///
     /// assert_eq!(rle[2], 1);
     /// assert_eq!(rle.runs_len(), 3);
@@ -638,6 +625,12 @@ impl<T: Eq + Clone> RleVec<T> {
             let value = self.runs[p].value.clone();
             self.runs.insert(p + 2, InternalRun { value, end: end + 1 });
         }
+    }
+}
+
+impl<'a, T: Eq + Clone> From<&'a [T]> for RleVec<T> {
+    fn from(slice: &'a [T]) -> Self {
+        slice.iter().cloned().collect()
     }
 }
 
@@ -767,7 +760,7 @@ impl io::Read for RleVec<u8> {
 /// # Example
 /// ```
 /// # use rle_vec::RleVec;
-/// let rle = RleVec::from_slice(&[1, 1, 1, 1, 2, 2, 3]);
+/// let rle = RleVec::from(&[1, 1, 1, 1, 2, 2, 3][..]);
 ///
 /// let mut iterator = rle.iter();
 /// assert_eq!(iterator.next(), Some(&1));
@@ -846,7 +839,7 @@ impl<'a, T: 'a> ExactSizeIterator for Iter<'a, T> { }
 /// # Example
 /// ```
 /// # use rle_vec::RleVec;
-/// let rle = RleVec::from_slice(&[1, 1, 1, 1, 2, 2, 3]);
+/// let rle = RleVec::from(&[1, 1, 1, 1, 2, 2, 3][..]);
 ///
 /// let mut iterator = rle.into_iter();
 /// assert_eq!(iterator.next(), Some(1));
@@ -925,7 +918,7 @@ impl<T: Clone> ExactSizeIterator for IntoIter<T> { }
 /// # Example
 /// ```
 /// # use rle_vec::{RleVec, Run};
-/// let rle = RleVec::from_slice(&[1, 1, 1, 1, 2, 2, 3]);
+/// let rle = RleVec::from(&[1, 1, 1, 1, 2, 2, 3][..]);
 ///
 /// let mut iterator = rle.runs();
 /// assert_eq!(iterator.next(), Some(Run{ len: 4, value: &1 }));
@@ -1018,7 +1011,7 @@ mod tests {
         assert_eq!(rle.runs_len(), 1);
         assert_eq!(rle[0], 10);
 
-        let mut rle = RleVec::from_slice(&[1, 1, 1, 1, 2, 2, 2, 3, 3, 4]);
+        let mut rle = RleVec::from(&[1, 1, 1, 1, 2, 2, 2, 3, 3, 4][..]);
 
         assert_eq!((0..10).map(|i| rle[i]).collect::<Vec<_>>(), vec![1,1,1,1,2,2,2,3,3,4]);
 
@@ -1040,7 +1033,7 @@ mod tests {
 
     #[test]
     fn removing_values() {
-        let mut rle = RleVec::from_slice(&[1, 1, 1, 1, 1, 2, 1, 1, 1, 4, 4, 3, 3]);
+        let mut rle = RleVec::from(&[1, 1, 1, 1, 1, 2, 1, 1, 1, 4, 4, 3, 3][..]);
         assert_eq!(rle.len(), 13);
         assert_eq!(rle.runs_len(), 5);
 
@@ -1066,7 +1059,7 @@ mod tests {
     #[test]
     fn inserting_values() {
         let mut v = vec![0,0,0,1,1,1,1,1,1,1,3,3,1,0,99,99,9];
-        let mut rle = RleVec::from_slice(&v);
+        let mut rle = RleVec::from(&v[..]);
         rle.insert(0,1);
         v.insert(0,1);
         assert_eq!((0..rle.len()).map(|i| rle[i]).collect::<Vec<_>>(), v);
@@ -1108,7 +1101,7 @@ mod tests {
     #[test]
     fn from_vec() {
         let v = vec![0,0,0,1,1,1,1,1,1,1,3,3,1,0,99,99,9];
-        let rle = RleVec::from_slice(&v);
+        let rle = RleVec::from(&v[..]);
         assert_eq!((0..v.len()).map(|i| rle[i]).collect::<Vec<_>>(), v);
         assert_eq!(rle.len(),17);
     }
@@ -1165,7 +1158,7 @@ mod tests {
 
     #[test]
     fn run_iters() {
-        let rle = RleVec::from_slice(&[1,1,1,1,1,2,2,2,2,3,3,3,5,5,5,5]);
+        let rle = RleVec::from(&[1,1,1,1,1,2,2,2,2,3,3,3,5,5,5,5][..]);
 
         let mut iterator = rle.runs();
 
@@ -1208,7 +1201,7 @@ mod tests {
     fn read_trait() {
         use std::io::Read;
 
-        let mut rle = RleVec::from_slice(&[1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3]);
+        let mut rle = RleVec::from(&[1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3][..]);
 
         let mut buf = [0; 11];
         rle.read(&mut buf).unwrap();
@@ -1216,7 +1209,7 @@ mod tests {
         assert_eq!(rle.len(), 0);
         assert_eq!(rle.runs_len(), 0);
 
-        let mut rle = RleVec::from_slice(&[1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3]);
+        let mut rle = RleVec::from(&[1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3][..]);
 
         let mut buf = [0; 4];
         rle.read(&mut buf).unwrap();
@@ -1224,7 +1217,7 @@ mod tests {
         assert_eq!(rle.len(), 7);
         assert_eq!(rle.runs_len(), 3);
 
-        let mut rle = RleVec::from_slice(&[1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3]);
+        let mut rle = RleVec::from(&[1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3][..]);
 
         let mut buf = [0; 0];
         rle.read(&mut buf).unwrap();
@@ -1232,7 +1225,7 @@ mod tests {
         assert_eq!(rle.len(), 11);
         assert_eq!(rle.runs_len(), 3);
 
-        let mut rle = RleVec::from_slice(&[1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3]);
+        let mut rle = RleVec::from(&[1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3][..]);
 
         let mut buf = [0; 5];
         rle.read(&mut buf).unwrap();
@@ -1240,7 +1233,7 @@ mod tests {
         assert_eq!(rle.len(), 6);
         assert_eq!(rle.runs_len(), 2);
 
-        let mut rle = RleVec::from_slice(&[1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3]);
+        let mut rle = RleVec::from(&[1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3][..]);
 
         let mut buf = [0; 8];
         rle.read(&mut buf).unwrap();
