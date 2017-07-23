@@ -91,76 +91,90 @@ cannot work for `RleVec`.
 
 **nb.** some test involves reallocations.
 
+### Creation
+
 ```
-rle_create_10_000_equal_values_from_iter       ... bench:      41,074 ns/iter (+/- 14,261)
-vec_create_10_000_equal_values_from_iter       ... bench:      51,655 ns/iter (+/- 771)
+rle_create_10_000_equal_values_from_iter       ... bench:      42,885 ns/iter (+/- 6,888)
+vec_create_10_000_equal_values_from_iter       ... bench:      54,886 ns/iter (+/- 7,233)
 
-rle_create_10_000_equal_values_from_slice      ... bench:      62,291 ns/iter (+/- 12,083)
-vec_create_10_000_equal_values_from_slice      ... bench:       1,946 ns/iter (+/- 220)
+rle_create_10_000_equal_values_from_slice      ... bench:      70,253 ns/iter (+/- 9,508)
+vec_create_10_000_equal_values_from_slice      ... bench:       1,958 ns/iter (+/- 964)
 
-rle_create_10_000_runs_of_10_values_from_iter  ... bench:      83,998 ns/iter (+/- 14,237)
-vec_create_10_000_runs_of_10_values_from_iter  ... bench:      95,427 ns/iter (+/- 3,965)
+rle_create_10_000_runs_of_10_values_from_iter  ... bench:     103,719 ns/iter (+/- 16,092)
+vec_create_10_000_runs_of_10_values_from_iter  ... bench:     100,510 ns/iter (+/- 16,670)
 
-rle_create_10_000_runs_of_10_values_from_slice ... bench:      76,577 ns/iter (+/- 10,709)
-vec_create_10_000_runs_of_10_values_from_slice ... bench:       1,868 ns/iter (+/- 803)
+rle_create_10_000_runs_of_10_values_from_slice ... bench:      87,999 ns/iter (+/- 13,080)
+vec_create_10_000_runs_of_10_values_from_slice ... bench:       1,956 ns/iter (+/- 818)
 
-rle_loop_10_000_equal_values      ... bench:     161,405 ns/iter (+/- 17,573)
-vec_loop_10_000_equal_values      ... bench:       7,653 ns/iter (+/- 616)
+rle_create_10_000_unique_values_from_iter      ... bench:      51,863 ns/iter (+/- 12,900)
+vec_create_10_000_unique_values_from_iter      ... bench:       5,197 ns/iter (+/- 1,066)
 
-rle_loop_10_000_runs_of_10_values ... bench:     163,949 ns/iter (+/- 14,492)
-vec_loop_10_000_runs_of_10_values ... bench:       5,612 ns/iter (+/- 612)
-
-rle_loop_10_000_equal_values     ... bench:     166,887 ns/iter (+/- 19,187)
-vec_loop_10_000_equal_values     ... bench:      11,307 ns/iter (+/- 1,175)
-
-
-rle_insert_middle_breaking_10_000_runs_of_10_values     ... bench:         232 ns/iter (+/- 47)
-rle_insert_middle_non_breaking_10_000_runs_of_10_values ... bench:         227 ns/iter (+/- 111)
-vec_insert_middle_10_000_runs_of_10_values              ... bench:      59,487 ns/iter (+/- 40,512)
-
-
-rle_remove_middle_breaking_10_000_equal_values          ... bench:     102,300 ns/iter (+/- 11,241)
-rle_remove_middle_non_breaking_10_000_runs_of_10_values ... bench:      94,748 ns/iter (+/- 10,388)
-vec_remove_middle_10_000_runs_of_10_values              ... bench:     104,008 ns/iter (+/- 13,896)
-
-
-rle_set_middle_10_000_equal_values            ... bench:          20 ns/iter (+/- 10)
-vec_set_middle_10_000_equal_values            ... bench:           3 ns/iter (+/- 0)
-
-rle_set_middle_10_000_runs_of_10_values       ... bench:          19 ns/iter (+/- 4)
-vec_set_middle_10_000_runs_of_10_values       ... bench:           3 ns/iter (+/- 1)
-
-rle_set_middle_same_value_10_000_equal_values ... bench:          16 ns/iter (+/- 3)
-vec_set_middle_same_value_10_000_equal_values ... bench:           3 ns/iter (+/- 0)
-
-rle_set_middle_10_000_equal_values           ... bench:          19 ns/iter (+/- 6)
-vec_set_middle_10_000_equal_values           ... bench:           3 ns/iter (+/- 0)
-
-
-rle_to_vec_of_u8_10_000_equal_values  ... bench:     225,858 ns/iter (+/- 21,944)
-rle_to_vec_of_u16_10_000_equal_values ... bench:     222,045 ns/iter (+/- 27,802)
-rle_to_vec_of_u32_10_000_equal_values ... bench:     215,114 ns/iter (+/- 24,490)
-rle_to_vec_of_u64_10_000_equal_values ... bench:     256,898 ns/iter (+/- 158,647)
+rle_create_10_000_unique_values_from_slice     ... bench:      71,782 ns/iter (+/- 10,748)
+vec_create_10_000_unique_values_from_slice     ... bench:       2,108 ns/iter (+/- 1,153)
 ```
+
+### Access
+
+```
+rle_loop_10_000_equal_values      ... bench:     150,124 ns/iter (+/- 20,430)
+vec_loop_10_000_equal_values      ... bench:       7,036 ns/iter (+/- 2,361)
+
+rle_loop_10_000_runs_of_10_values ... bench:     153,809 ns/iter (+/- 20,454)
+vec_loop_10_000_runs_of_10_values ... bench:       5,241 ns/iter (+/- 502)
+
+rle_loop_10_000_unique_values     ... bench:     159,022 ns/iter (+/- 44,962)
+vec_loop_10_000_unique_values     ... bench:      10,942 ns/iter (+/- 1,674)
+```
+
+### Insertion
 
 Inserting data is very competitive and can be faster if no run breaking is
 required. Indexing takes quite a big penalty, but mutable indexing is not that
 bad.
 
-**nb.2.** *remove* benches recreate the vector at each bench iteration. Substraction of the creation time get the real remove time.
+```
+rle_insert_middle_breaking_10_000_runs_of_10_values     ... bench:         233 ns/iter (+/- 41)
+rle_insert_middle_non_breaking_10_000_runs_of_10_values ... bench:         245 ns/iter (+/- 29)
+vec_insert_middle_10_000_runs_of_10_values              ... bench:      49,487 ns/iter (+/- 60,604)
+```
+
+### Set
 
 ```
-rle_create_10_000_runs_of_10_values_from_iter  ... bench:      83,998 ns/iter (+/- 14,237)
-vec_create_10_000_runs_of_10_values_from_iter  ... bench:      95,427 ns/iter (+/- 3,965)
+rle_set_middle_10_000_equal_values            ... bench:          21 ns/iter (+/- 3)
+vec_set_middle_10_000_equal_values            ... bench:           3 ns/iter (+/- 0)
 
-rle_create_10_000_equal_values_from_iter       ... bench:      41,074 ns/iter (+/- 14,261)
-vec_create_10_000_equal_values_from_iter       ... bench:      51,655 ns/iter (+/- 771)
+rle_set_middle_10_000_runs_of_10_values       ... bench:          19 ns/iter (+/- 6)
+vec_set_middle_10_000_runs_of_10_values       ... bench:           3 ns/iter (+/- 0)
 
-rle_remove_middle_breaking_10_000_equal_values          ... bench:     102,300 ns/iter (+/- 11,241)
-rle_remove_middle_non_breaking_10_000_runs_of_10_values ... bench:      94,748 ns/iter (+/- 10,388)
-vec_remove_middle_10_000_runs_of_10_values              ... bench:     104,008 ns/iter (+/- 13,896)
+rle_set_middle_10_000_unique_values           ... bench:          20 ns/iter (+/- 3)
+vec_set_middle_10_000_unique_values           ... bench:           3 ns/iter (+/- 1)
 
-rle_remove_middle_sub_create_breaking_10_000_runs_of_10_values     ... bench:     18,302 ns/iter
-rle_remove_middle_sub_create_non_breaking_10_000_runs_of_10_values ... bench:     10,750 ns/iter
-vec_remove_middle_sub_create_10_000_runs_of_10_values              ... bench:      8,581 ns/iter
+rle_set_middle_same_value_10_000_equal_values ... bench:          18 ns/iter (+/- 2)
+vec_set_middle_same_value_10_000_equal_values ... bench:           3 ns/iter (+/- 0)
+```
+
+### Deletion
+
+```
+rle_remove_middle_non_breaking_10_000_runs_of_10_values ... bench:      87,766 ns/iter (+/- 31,565)
+rle_remove_middle_breaking_10_000_equal_values          ... bench:      92,490 ns/iter (+/- 15,315)
+vec_remove_middle_10_000_runs_of_10_values              ... bench:      97,566 ns/iter (+/- 32,408)
+```
+
+*Remove* benches recreate the vector at each bench iteration. Substraction of the creation time get the real remove time.
+
+```
+rle_remove_middle_breaking_10_000_runs_of_10_values_sub_create     ... bench:     44,881 ns/iter
+rle_remove_middle_non_breaking_10_000_equal_values                 ... bench:     49,605 ns/iter
+vec_remove_middle_10_000_runs_of_10_values_sub_create              ... bench:     42,680 ns/iter
+```
+
+### To Vec
+
+```
+rle_to_vec_of_u8_10_000_equal_values  ... bench:     212,201 ns/iter (+/- 29,546)
+rle_to_vec_of_u16_10_000_equal_values ... bench:     211,825 ns/iter (+/- 25,000)
+rle_to_vec_of_u32_10_000_equal_values ... bench:     207,243 ns/iter (+/- 29,504)
+rle_to_vec_of_u64_10_000_equal_values ... bench:     221,884 ns/iter (+/- 28,667)
 ```
