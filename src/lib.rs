@@ -652,38 +652,25 @@ impl Into<Vec<u8>> for RleVec<u8> {
 
 impl<'a, T: Eq + Clone> From<&'a [T]> for RleVec<T> {
     fn from(slice: &'a [T]) -> Self {
-        // let mut equal_values = true;
-        // for v in slice {
-        //     if *v != slice[0] {
-        //         equal_values = false;
-        //         break;
-        //     }
-        // }
-
-        // if !slice.is_empty() && equal_values {
-        //     RleVec {
-        //         runs: vec![InternalRun {
-        //             end: slice.len() - 1,
-        //             value: slice[0].clone()
-        //         }]
-        //     }
-        // } else {
-        //     slice.iter().cloned().collect()
-        // }
-
         if slice.is_empty() {
             return RleVec::new()
         }
 
         let mut runs = Vec::new();
         let mut last_value = slice.index(0);
-        for i in 1..slice.len() {
-            if slice[i] != *last_value {
-                runs.push(InternalRun{ end: i - 1, value: last_value.clone() });
-                last_value = slice.index(i);
+        for (i, v) in slice[1..].iter().enumerate() {
+            if v != last_value {
+                runs.push(InternalRun{
+                    end: i,
+                    value: last_value.clone()
+                });
+                last_value = v;
             }
         }
-        runs.push(InternalRun{ end: slice.len() - 1, value: last_value.clone() });
+        runs.push(InternalRun{
+            end: slice.len() - 1,
+            value: last_value.clone()
+        });
 
         RleVec { runs }
     }
