@@ -652,31 +652,32 @@ impl Into<Vec<u8>> for RleVec<u8> {
 
 impl<'a, T: Eq + Clone> From<&'a [T]> for RleVec<T> {
     fn from(slice: &'a [T]) -> Self {
-        if slice.is_empty() {
-            return RleVec::new()
-        }
+        // if slice.is_empty() {
+        //     return RleVec::new()
+        // }
 
-        let mut runs = Vec::new();
-        let mut last_value = slice.index(0);
-        for (i, v) in slice[1..].iter().enumerate() {
-            if v != last_value {
-                runs.push(InternalRun{
-                    end: i,
-                    value: last_value.clone()
-                });
-                last_value = v;
-            }
-        }
-        runs.push(InternalRun{
-            end: slice.len() - 1,
-            value: last_value.clone()
-        });
+        // let mut runs = Vec::new();
+        // let mut last_value = slice.index(0);
+        // for (i, v) in slice[1..].iter().enumerate() {
+        //     if v != last_value {
+        //         runs.push(InternalRun{
+        //             end: i,
+        //             value: last_value.clone()
+        //         });
+        //         last_value = v;
+        //     }
+        // }
+        // runs.push(InternalRun{
+        //     end: slice.len() - 1,
+        //     value: last_value.clone()
+        // });
 
-        RleVec { runs }
+        // RleVec { runs }
+        slice.iter().cloned().collect()
     }
 }
 
-impl<T: Eq> FromIterator<T> for RleVec<T> {
+impl<T: Eq + Clone> FromIterator<T> for RleVec<T> {
     fn from_iter<I>(iter: I) -> Self where I: IntoIterator<Item=T> {
         let mut rle = RleVec::new();
         rle.extend(iter);
@@ -701,10 +702,29 @@ impl<T> Default for RleVec<T> {
     }
 }
 
-impl<T: Eq> Extend<T> for RleVec<T> {
+impl<T: Eq + Clone> Extend<T> for RleVec<T> {
     fn extend<I>(&mut self, iter: I) where I: IntoIterator<Item=T> {
-        for value in iter {
-            self.push(value)
+        // for value in iter {
+        //     self.push(value)
+        // }
+
+        let mut iter = iter.into_iter();
+        if let Some(ref mut last_value) = iter.next() {
+            let mut len = 0;
+            for (i, v) in iter.enumerate() {
+                if v != *last_value {
+                    self.runs.push(InternalRun{
+                        end: i,
+                        value: last_value.clone()
+                    });
+                    *last_value = v;
+                }
+                len = i;
+            }
+            self.runs.push(InternalRun{
+                end: len + 1,
+                value: last_value.clone()
+            });
         }
     }
 }
