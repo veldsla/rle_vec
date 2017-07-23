@@ -9,7 +9,7 @@ use test::Bencher;
 use rle_vec::RleVec;
 
 #[bench]
-fn rle_loop_10_000_unique_values(b: &mut Bencher) {
+fn rle_loop_10_000_equal_values(b: &mut Bencher) {
     let rle = RleVec::from_iter(0..10_000);
     b.iter(|| {
         for (i, v) in rle.iter().enumerate() {
@@ -19,7 +19,7 @@ fn rle_loop_10_000_unique_values(b: &mut Bencher) {
 }
 
 #[bench]
-fn vec_loop_10_000_unique_values(b: &mut Bencher) {
+fn vec_loop_10_000_equal_values(b: &mut Bencher) {
     let vec = Vec::from_iter(0..10_000);
     b.iter(|| {
         for (i, v) in vec.iter().enumerate() {

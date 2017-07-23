@@ -9,7 +9,7 @@ use test::Bencher;
 use rle_vec::RleVec;
 
 #[bench]
-fn rle_set_middle_10_000_unique_values(b: &mut Bencher) {
+fn rle_set_middle_10_000_equal_values(b: &mut Bencher) {
     let mut rle = RleVec::from_iter(0..10_000);
 
     b.iter(|| {
@@ -18,7 +18,7 @@ fn rle_set_middle_10_000_unique_values(b: &mut Bencher) {
 }
 
 #[bench]
-fn vec_set_middle_10_000_unique_values(b: &mut Bencher) {
+fn vec_set_middle_10_000_equal_values(b: &mut Bencher) {
     let mut vec = Vec::from_iter(0..10_000);
 
     b.iter(|| {

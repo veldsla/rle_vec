@@ -89,18 +89,29 @@ cannot work for `RleVec`.
 
 `Cargo bench` can be used to compare the real life difference of get/set/insert/remove operations on a `Vec` and `RleVec`.
 
-**nb.** *remove* benches recreate the vector at each bench iteration.
-**nb.2.** some test involves reallocations.
+**nb.** some test involves reallocations.
 
 ```
+rle_create_10_000_equal_values_from_iter       ... bench:      41,074 ns/iter (+/- 14,261)
+vec_create_10_000_equal_values_from_iter       ... bench:      51,655 ns/iter (+/- 771)
+
+rle_create_10_000_equal_values_from_slice      ... bench:      62,291 ns/iter (+/- 12,083)
+vec_create_10_000_equal_values_from_slice      ... bench:       1,946 ns/iter (+/- 220)
+
+rle_create_10_000_runs_of_10_values_from_iter  ... bench:      83,998 ns/iter (+/- 14,237)
+vec_create_10_000_runs_of_10_values_from_iter  ... bench:      95,427 ns/iter (+/- 3,965)
+
+rle_create_10_000_runs_of_10_values_from_slice ... bench:      76,577 ns/iter (+/- 10,709)
+vec_create_10_000_runs_of_10_values_from_slice ... bench:       1,868 ns/iter (+/- 803)
+
 rle_loop_10_000_equal_values      ... bench:     161,405 ns/iter (+/- 17,573)
 vec_loop_10_000_equal_values      ... bench:       7,653 ns/iter (+/- 616)
 
 rle_loop_10_000_runs_of_10_values ... bench:     163,949 ns/iter (+/- 14,492)
 vec_loop_10_000_runs_of_10_values ... bench:       5,612 ns/iter (+/- 612)
 
-rle_loop_10_000_unique_values     ... bench:     166,887 ns/iter (+/- 19,187)
-vec_loop_10_000_unique_values     ... bench:      11,307 ns/iter (+/- 1,175)
+rle_loop_10_000_equal_values     ... bench:     166,887 ns/iter (+/- 19,187)
+vec_loop_10_000_equal_values     ... bench:      11,307 ns/iter (+/- 1,175)
 
 
 rle_insert_middle_breaking_10_000_runs_of_10_values     ... bench:         232 ns/iter (+/- 47)
@@ -108,7 +119,7 @@ rle_insert_middle_non_breaking_10_000_runs_of_10_values ... bench:         227 n
 vec_insert_middle_10_000_runs_of_10_values              ... bench:      59,487 ns/iter (+/- 40,512)
 
 
-rle_remove_middle_breaking_10_000_unique_values         ... bench:     102,300 ns/iter (+/- 11,241)
+rle_remove_middle_breaking_10_000_equal_values          ... bench:     102,300 ns/iter (+/- 11,241)
 rle_remove_middle_non_breaking_10_000_runs_of_10_values ... bench:      94,748 ns/iter (+/- 10,388)
 vec_remove_middle_10_000_runs_of_10_values              ... bench:     104,008 ns/iter (+/- 13,896)
 
@@ -122,8 +133,8 @@ vec_set_middle_10_000_runs_of_10_values       ... bench:           3 ns/iter (+/
 rle_set_middle_same_value_10_000_equal_values ... bench:          16 ns/iter (+/- 3)
 vec_set_middle_same_value_10_000_equal_values ... bench:           3 ns/iter (+/- 0)
 
-rle_set_middle_10_000_unique_values           ... bench:          19 ns/iter (+/- 6)
-vec_set_middle_10_000_unique_values           ... bench:           3 ns/iter (+/- 0)
+rle_set_middle_10_000_equal_values           ... bench:          19 ns/iter (+/- 6)
+vec_set_middle_10_000_equal_values           ... bench:           3 ns/iter (+/- 0)
 
 
 rle_to_vec_of_u8_10_000_equal_values  ... bench:     225,858 ns/iter (+/- 21,944)
@@ -135,3 +146,21 @@ rle_to_vec_of_u64_10_000_equal_values ... bench:     256,898 ns/iter (+/- 158,64
 Inserting data is very competitive and can be faster if no run breaking is
 required. Indexing takes quite a big penalty, but mutable indexing is not that
 bad.
+
+**nb.2.** *remove* benches recreate the vector at each bench iteration. Substraction of the creation time get the real remove time.
+
+```
+rle_create_10_000_runs_of_10_values_from_iter  ... bench:      83,998 ns/iter (+/- 14,237)
+vec_create_10_000_runs_of_10_values_from_iter  ... bench:      95,427 ns/iter (+/- 3,965)
+
+rle_create_10_000_equal_values_from_iter       ... bench:      41,074 ns/iter (+/- 14,261)
+vec_create_10_000_equal_values_from_iter       ... bench:      51,655 ns/iter (+/- 771)
+
+rle_remove_middle_breaking_10_000_equal_values          ... bench:     102,300 ns/iter (+/- 11,241)
+rle_remove_middle_non_breaking_10_000_runs_of_10_values ... bench:      94,748 ns/iter (+/- 10,388)
+vec_remove_middle_10_000_runs_of_10_values              ... bench:     104,008 ns/iter (+/- 13,896)
+
+rle_remove_middle_sub_create_breaking_10_000_runs_of_10_values     ... bench:     18,302 ns/iter
+rle_remove_middle_sub_create_non_breaking_10_000_runs_of_10_values ... bench:     10,750 ns/iter
+vec_remove_middle_sub_create_10_000_runs_of_10_values              ... bench:      8,581 ns/iter
+```
