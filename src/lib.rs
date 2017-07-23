@@ -441,7 +441,7 @@ impl<T: Eq> RleVec<T> {
 
         let end = match self.runs.last_mut() {
             Some(ref mut last) if last.value == value => return last.end += n,
-            Some(ref mut last) => last.end + n,
+            Some(last) => last.end + n,
             None => n - 1,
         };
 
@@ -628,12 +628,6 @@ impl<T: Eq + Clone> RleVec<T> {
     }
 }
 
-impl<'a, T: Eq + Clone> From<&'a [T]> for RleVec<T> {
-    fn from(slice: &'a [T]) -> Self {
-        slice.iter().cloned().collect()
-    }
-}
-
 impl<T> Index<usize> for RleVec<T> {
     type Output = T;
 
@@ -653,6 +647,45 @@ impl Into<Vec<u8>> for RleVec<u8> {
         let mut vec = Vec::new();
         self.read_to_end(&mut vec).unwrap();
         vec
+    }
+}
+
+impl<'a, T: Eq + Clone> From<&'a [T]> for RleVec<T> {
+    fn from(slice: &'a [T]) -> Self {
+        // let mut equal_values = true;
+        // for v in slice {
+        //     if *v != slice[0] {
+        //         equal_values = false;
+        //         break;
+        //     }
+        // }
+
+        // if !slice.is_empty() && equal_values {
+        //     RleVec {
+        //         runs: vec![InternalRun {
+        //             end: slice.len() - 1,
+        //             value: slice[0].clone()
+        //         }]
+        //     }
+        // } else {
+        //     slice.iter().cloned().collect()
+        // }
+
+        if slice.is_empty() {
+            return RleVec::new()
+        }
+
+        let mut runs = Vec::new();
+        let mut last_value = slice.index(0);
+        for i in 1..slice.len() {
+            if slice[i] != *last_value {
+                runs.push(InternalRun{ end: i - 1, value: last_value.clone() });
+                last_value = slice.index(i);
+            }
+        }
+        runs.push(InternalRun{ end: slice.len() - 1, value: last_value.clone() });
+
+        RleVec { runs }
     }
 }
 

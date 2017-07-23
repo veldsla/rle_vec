@@ -10,29 +10,35 @@ use rle_vec::RleVec;
 
 #[bench]
 fn rle_create_10_000_unique_values_from_slice(b: &mut Bencher) {
+    let vec = Vec::from_iter(0..10_000);
+    let slice = vec.as_slice();
+
     b.iter(|| {
-        RleVec::from(&[0; 10_000][..]);
+        RleVec::from(&slice[..]);
     })
 }
 
 #[bench]
 fn vec_create_10_000_unique_values_from_slice(b: &mut Bencher) {
+    let vec = Vec::from_iter(0..10_000);
+    let slice = vec.as_slice();
+
     b.iter(|| {
-        Vec::from(&[0; 10_000][..]);
+        Vec::from(&slice[..]);
     })
 }
 
 #[bench]
 fn rle_create_10_000_unique_values_from_iter(b: &mut Bencher) {
     b.iter(|| {
-        RleVec::from_iter((&[0; 10_000][..]).iter());
+        RleVec::from_iter(0..10_000);
     })
 }
 
 #[bench]
 fn vec_create_10_000_unique_values_from_iter(b: &mut Bencher) {
     b.iter(|| {
-        Vec::from_iter((&[0; 10_000][..]).iter());
+        Vec::from_iter(0..10_000);
     })
 }
 
