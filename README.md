@@ -89,7 +89,8 @@ cannot work for `RleVec`.
 
 `Cargo bench` can be used to compare the real life difference of get/set/insert/remove operations on a `Vec` and `RleVec`.
 
-Note that *remove* benches recreate the vector at each bench iteration.
+**nb.** *remove* benches recreate the vector at each bench iteration.
+**nb.2.** some test involves reallocations.
 
 ```
 rle_loop_10_000_equal_values      ... bench:     161,405 ns/iter (+/- 17,573)
