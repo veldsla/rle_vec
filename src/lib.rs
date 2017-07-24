@@ -651,7 +651,28 @@ impl Into<Vec<u8>> for RleVec<u8> {
 
 impl<'a, T: Eq + Clone> From<&'a [T]> for RleVec<T> {
     fn from(slice: &'a [T]) -> Self {
-        slice.iter().cloned().collect()
+        if slice.is_empty() {
+            return RleVec::new()
+        }
+
+        let mut runs = Vec::new();
+        let mut last_value = slice[0].clone();
+        for (i, v) in slice[1..].iter().enumerate() {
+            if *v != last_value {
+                runs.push(InternalRun{
+                    end: i,
+                    value: last_value,
+                });
+                last_value = v.clone();
+            }
+        }
+
+        runs.push(InternalRun{
+            end: slice.len() - 1,
+            value: last_value,
+        });
+
+        RleVec { runs }
     }
 }
 
@@ -691,7 +712,7 @@ impl<T: Eq> Extend<T> for RleVec<T> {
                 if value != last_value {
                     self.runs.push(InternalRun{
                         end: i,
-                        value: last_value.unwrap()
+                        value: last_value.unwrap(),
                     });
                     last_value = value;
                 }
@@ -699,7 +720,7 @@ impl<T: Eq> Extend<T> for RleVec<T> {
             }
             self.runs.push(InternalRun{
                 end: len,
-                value: last_value.unwrap()
+                value: last_value.unwrap(),
             });
         }
     }
@@ -996,6 +1017,8 @@ mod tests {
 
     #[test]
     fn rare_usage() {
+        // from slice
+
         let rle: RleVec<i32> = RleVec::from(&[][..]);
         assert_eq!(rle.to_vec(), vec![]);
         let runs: Vec<_> = rle.runs().collect();
@@ -1012,6 +1035,29 @@ mod tests {
         assert_eq!(runs, vec![Run{ len: 1, value: &1 }, Run { len: 1, value: &2 }]);
 
         let rle: RleVec<i32> = RleVec::from(&[1, 1][..]);
+        assert_eq!(rle.to_vec(), vec![1, 1]);
+        let runs: Vec<_> = rle.runs().collect();
+        assert_eq!(runs, vec![Run{ len: 2, value: &1 }]);
+
+        // from iter
+
+        let rle: RleVec<i32> = RleVec::from_iter(0..0);
+        assert_eq!(rle.to_vec(), vec![]);
+        let runs: Vec<_> = rle.runs().collect();
+        assert_eq!(runs, vec![]);
+
+        let rle: RleVec<i32> = RleVec::from_iter(1..2);
+        assert_eq!(rle.to_vec(), vec![1]);
+        let runs: Vec<_> = rle.runs().collect();
+        assert_eq!(runs, vec![Run{ len: 1, value: &1 }]);
+
+        let rle: RleVec<i32> = RleVec::from_iter(1..3);
+        assert_eq!(rle.to_vec(), vec![1, 2]);
+        let runs: Vec<_> = rle.runs().collect();
+        assert_eq!(runs, vec![Run{ len: 1, value: &1 }, Run { len: 1, value: &2 }]);
+
+        use std::iter::repeat;
+        let rle: RleVec<i32> = RleVec::from_iter(repeat(1).take(2));
         assert_eq!(rle.to_vec(), vec![1, 1]);
         let runs: Vec<_> = rle.runs().collect();
         assert_eq!(runs, vec![Run{ len: 2, value: &1 }]);
