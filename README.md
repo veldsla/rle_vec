@@ -87,29 +87,27 @@ cannot work for `RleVec`.
 
 ## Benchmarks
 
-`Cargo bench` can be used to compare the real life difference of get/set/insert/remove operations on a `Vec` and `RleVec`.
-
-**nb.** some test involves reallocations.
+`Cargo bench` can be used to compare the real life difference of get/set/insert/remove operations on a `Vec` and `RleVec`. Warning, some test involves reallocations.
 
 ### Creation
 
 ```
-rle_create_10_000_equal_values_from_iter       ... bench:      42,885 ns/iter (+/- 6,888)
+rle_create_10_000_equal_values_from_iter       ... bench:       6,783 ns/iter (+/- 1,840)
 vec_create_10_000_equal_values_from_iter       ... bench:      54,886 ns/iter (+/- 7,233)
 
-rle_create_10_000_equal_values_from_slice      ... bench:      70,253 ns/iter (+/- 9,508)
+rle_create_10_000_equal_values_from_slice      ... bench:      42,526 ns/iter (+/- 6,384)
 vec_create_10_000_equal_values_from_slice      ... bench:       1,958 ns/iter (+/- 964)
 
-rle_create_10_000_runs_of_10_values_from_iter  ... bench:     103,719 ns/iter (+/- 16,092)
+rle_create_10_000_runs_of_10_values_from_iter  ... bench:      77,560 ns/iter (+/- 29,659)
 vec_create_10_000_runs_of_10_values_from_iter  ... bench:     100,510 ns/iter (+/- 16,670)
 
-rle_create_10_000_runs_of_10_values_from_slice ... bench:      87,999 ns/iter (+/- 13,080)
+rle_create_10_000_runs_of_10_values_from_slice ... bench:      43,341 ns/iter (+/- 10,864)
 vec_create_10_000_runs_of_10_values_from_slice ... bench:       1,956 ns/iter (+/- 818)
 
-rle_create_10_000_unique_values_from_iter      ... bench:      51,863 ns/iter (+/- 12,900)
-vec_create_10_000_unique_values_from_iter      ... bench:       5,197 ns/iter (+/- 1,066)
+rle_create_10_000_unique_values_from_iter      ... bench:      62,455 ns/iter (+/- 12,227)
+vec_create_10_000_unique_values_from_iter      ... bench:       3,514 ns/iter (+/- 428)
 
-rle_create_10_000_unique_values_from_slice     ... bench:      71,782 ns/iter (+/- 10,748)
+rle_create_10_000_unique_values_from_slice     ... bench:      98,893 ns/iter (+/- 89,276)
 vec_create_10_000_unique_values_from_slice     ... bench:       2,108 ns/iter (+/- 1,153)
 ```
 
@@ -157,9 +155,9 @@ vec_set_middle_same_value_10_000_equal_values ... bench:           3 ns/iter (+/
 ### Deletion
 
 ```
-rle_remove_middle_non_breaking_10_000_runs_of_10_values ... bench:      87,766 ns/iter (+/- 31,565)
-rle_remove_middle_breaking_10_000_equal_values          ... bench:      92,490 ns/iter (+/- 15,315)
-vec_remove_middle_10_000_runs_of_10_values              ... bench:      97,566 ns/iter (+/- 32,408)
+rle_remove_middle_non_breaking_10_000_runs_of_10_values ... bench:      69,937 ns/iter (+/- 13,459)
+rle_remove_middle_breaking_10_000_equal_values          ... bench:      59,973 ns/iter (+/- 10,970)
+vec_remove_middle_10_000_runs_of_10_values              ... bench:      93,627 ns/iter (+/- 12,316)
 ```
 
 *Remove* benches recreate the vector at each bench iteration. Substraction of the creation time get the real remove time.
