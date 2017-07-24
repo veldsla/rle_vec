@@ -95,19 +95,19 @@ cannot work for `RleVec`.
 rle_create_10_000_equal_values_from_iter       ... bench:       6,783 ns/iter (+/- 1,840)
 vec_create_10_000_equal_values_from_iter       ... bench:      54,886 ns/iter (+/- 7,233)
 
-rle_create_10_000_equal_values_from_slice      ... bench:      42,526 ns/iter (+/- 6,384)
+rle_create_10_000_equal_values_from_slice      ... bench:       6,577 ns/iter (+/- 840)
 vec_create_10_000_equal_values_from_slice      ... bench:       1,958 ns/iter (+/- 964)
 
 rle_create_10_000_runs_of_10_values_from_iter  ... bench:      77,560 ns/iter (+/- 29,659)
 vec_create_10_000_runs_of_10_values_from_iter  ... bench:     100,510 ns/iter (+/- 16,670)
 
-rle_create_10_000_runs_of_10_values_from_slice ... bench:      43,341 ns/iter (+/- 10,864)
+rle_create_10_000_runs_of_10_values_from_slice ... bench:      11,526 ns/iter (+/- 3,902)
 vec_create_10_000_runs_of_10_values_from_slice ... bench:       1,956 ns/iter (+/- 818)
 
 rle_create_10_000_unique_values_from_iter      ... bench:      62,455 ns/iter (+/- 12,227)
 vec_create_10_000_unique_values_from_iter      ... bench:       3,514 ns/iter (+/- 428)
 
-rle_create_10_000_unique_values_from_slice     ... bench:      98,893 ns/iter (+/- 89,276)
+rle_create_10_000_unique_values_from_slice     ... bench:      64,089 ns/iter (+/- 11,725)
 vec_create_10_000_unique_values_from_slice     ... bench:       2,108 ns/iter (+/- 1,153)
 ```
 
