@@ -20,8 +20,7 @@
 use std::io::{self, Read};
 use std::iter::FromIterator;
 use std::iter::once;
-use std::cmp;
-use std::ptr;
+use std::{ptr, cmp};
 use std::ops::Index;
 
 /// The `RleVec` struct handles like a normal vector and supports a subset from the `Vec` methods.
@@ -652,32 +651,11 @@ impl Into<Vec<u8>> for RleVec<u8> {
 
 impl<'a, T: Eq + Clone> From<&'a [T]> for RleVec<T> {
     fn from(slice: &'a [T]) -> Self {
-        // if slice.is_empty() {
-        //     return RleVec::new()
-        // }
-
-        // let mut runs = Vec::new();
-        // let mut last_value = slice.index(0);
-        // for (i, v) in slice[1..].iter().enumerate() {
-        //     if v != last_value {
-        //         runs.push(InternalRun{
-        //             end: i,
-        //             value: last_value.clone()
-        //         });
-        //         last_value = v;
-        //     }
-        // }
-        // runs.push(InternalRun{
-        //     end: slice.len() - 1,
-        //     value: last_value.clone()
-        // });
-
-        // RleVec { runs }
         slice.iter().cloned().collect()
     }
 }
 
-impl<T: Eq + Clone> FromIterator<T> for RleVec<T> {
+impl<T: Eq> FromIterator<T> for RleVec<T> {
     fn from_iter<I>(iter: I) -> Self where I: IntoIterator<Item=T> {
         let mut rle = RleVec::new();
         rle.extend(iter);
@@ -702,28 +680,26 @@ impl<T> Default for RleVec<T> {
     }
 }
 
-impl<T: Eq + Clone> Extend<T> for RleVec<T> {
+impl<T: Eq> Extend<T> for RleVec<T> {
     fn extend<I>(&mut self, iter: I) where I: IntoIterator<Item=T> {
-        // for value in iter {
-        //     self.push(value)
-        // }
-
         let mut iter = iter.into_iter();
-        if let Some(ref mut last_value) = iter.next() {
+        let mut last_value = iter.next();
+        if last_value.is_some() {
             let mut len = 0;
-            for (i, v) in iter.enumerate() {
-                if v != *last_value {
+            for (i, value) in iter.enumerate() {
+                let value = Some(value);
+                if value != last_value {
                     self.runs.push(InternalRun{
                         end: i,
-                        value: last_value.clone()
+                        value: last_value.unwrap()
                     });
-                    *last_value = v;
+                    last_value = value;
                 }
-                len = i;
+                len = i + 1;
             }
             self.runs.push(InternalRun{
-                end: len + 1,
-                value: last_value.clone()
+                end: len,
+                value: last_value.unwrap()
             });
         }
     }
@@ -1017,6 +993,29 @@ impl<'a, T: 'a> ExactSizeIterator for Runs<'a, T> { }
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn rare_usage() {
+        let rle: RleVec<i32> = RleVec::from(&[][..]);
+        assert_eq!(rle.to_vec(), vec![]);
+        let runs: Vec<_> = rle.runs().collect();
+        assert_eq!(runs, vec![]);
+
+        let rle: RleVec<i32> = RleVec::from(&[1][..]);
+        assert_eq!(rle.to_vec(), vec![1]);
+        let runs: Vec<_> = rle.runs().collect();
+        assert_eq!(runs, vec![Run{ len: 1, value: &1 }]);
+
+        let rle: RleVec<i32> = RleVec::from(&[1, 2][..]);
+        assert_eq!(rle.to_vec(), vec![1, 2]);
+        let runs: Vec<_> = rle.runs().collect();
+        assert_eq!(runs, vec![Run{ len: 1, value: &1 }, Run { len: 1, value: &2 }]);
+
+        let rle: RleVec<i32> = RleVec::from(&[1, 1][..]);
+        assert_eq!(rle.to_vec(), vec![1, 1]);
+        let runs: Vec<_> = rle.runs().collect();
+        assert_eq!(runs, vec![Run{ len: 2, value: &1 }]);
+    }
 
     #[test]
     fn basic_usage() {
