@@ -363,7 +363,13 @@ impl<T> RleVec<T> {
     /// assert_eq!(iterator.next(), None);
     /// ```
     pub fn iter(&self) -> Iter<T> {
-        Iter { rle: self, run_index: 0, index: 0 }
+        Iter {
+            rle: self,
+            run_index: 0,
+            index: 0,
+            run_index_back: self.runs.len().saturating_sub(1),
+            index_back: self.len(), // starts out of range
+        }
     }
 
     /// Returns an iterator that can be used to iterate over the runs.
@@ -813,6 +819,8 @@ pub struct Iter<'a, T: 'a> {
     rle: &'a RleVec<T>,
     run_index: usize,
     index: usize,
+    index_back: usize,
+    run_index_back: usize,
 }
 
 impl<'a, T: 'a> IntoIterator for &'a RleVec<T> {
@@ -820,7 +828,13 @@ impl<'a, T: 'a> IntoIterator for &'a RleVec<T> {
     type IntoIter = Iter<'a, T>;
 
     fn into_iter(self) -> Self::IntoIter {
-        Iter { rle: &self, run_index: 0, index: 0 }
+        Iter {
+            rle: &self,
+            run_index: 0,
+            index: 0,
+            run_index_back: self.runs.len().saturating_sub(1),
+            index_back: self.len(), // starts out of range
+        }
     }
 }
 
@@ -828,7 +842,7 @@ impl<'a, T: 'a> Iterator for Iter<'a, T> {
     type Item = &'a T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.index == self.rle.len() {
+        if self.index == self.index_back {
             return None
         }
         let value = &self.rle.runs[self.run_index].value;
@@ -869,6 +883,19 @@ impl<'a, T: 'a> Iterator for Iter<'a, T> {
 
 impl<'a, T: 'a> ExactSizeIterator for Iter<'a, T> { }
 
+impl<'a, T: 'a> DoubleEndedIterator for Iter<'a, T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        if self.index_back == self.index {
+            return None
+        }
+        self.index_back -= 1;
+        if self.run_index_back > 0 && self.index_back <= self.rle.runs[self.run_index_back - 1].end {
+            self.run_index_back -= 1;
+        }
+        Some(&self.rle.runs[self.run_index_back].value)
+    }
+}
+
 /// Immutable `RelVec` iterator over values.
 ///
 /// Can be obtained from the `into_iter` method.
@@ -892,6 +919,8 @@ pub struct IntoIter<T> {
     rle: RleVec<T>,
     run_index: usize,
     index: usize,
+    index_back: usize,
+    run_index_back: usize,
 }
 
 impl<T: Clone> IntoIterator for RleVec<T> {
@@ -899,7 +928,15 @@ impl<T: Clone> IntoIterator for RleVec<T> {
     type IntoIter = IntoIter<T>;
 
     fn into_iter(self) -> Self::IntoIter {
-        IntoIter { rle: self, run_index: 0, index: 0 }
+        let run_index_back = self.runs.len().saturating_sub(1);
+        let index_back = self.len(); // starts out of range
+        IntoIter {
+            rle: self,
+            run_index: 0,
+            index: 0,
+            run_index_back,
+            index_back,
+        }
     }
 }
 
@@ -907,7 +944,7 @@ impl<T: Clone> Iterator for IntoIter<T> {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.index == self.rle.len() {
+        if self.index == self.index_back {
             return None
         }
         let value = self.rle.runs[self.run_index].value.clone();
@@ -947,6 +984,19 @@ impl<T: Clone> Iterator for IntoIter<T> {
 }
 
 impl<T: Clone> ExactSizeIterator for IntoIter<T> { }
+
+impl<T: Clone> DoubleEndedIterator for IntoIter<T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        if self.index_back == self.index {
+            return None
+        }
+        self.index_back -= 1;
+        if self.run_index_back > 0 && self.index_back <= self.rle.runs[self.run_index_back - 1].end {
+            self.run_index_back -= 1;
+        }
+        Some(self.rle.runs[self.run_index_back].value.clone())
+    }
+}
 
 /// Immutable `RelVec` iterator over runs.
 ///
@@ -1239,6 +1289,68 @@ mod tests {
         assert_eq!(copy.iter().cloned().collect::<Vec<_>>(), v);
         let copy2: RleVec<i32> = rle.runs().map(|r| Run { value: r.value.clone(), len: r.len }).collect();
         assert_eq!(copy2.iter().cloned().collect::<Vec<_>>(), v);
+    }
+
+    #[test]
+    fn back_iterators() {
+        let rle = RleVec::from(&[0,1,1,3,3,9,99][..]);
+
+        // only next_back()
+        let mut iter = rle.iter();
+        assert_eq!(iter.next_back(), Some(&99));
+        assert_eq!(iter.next_back(), Some(&9));
+        assert_eq!(iter.next_back(), Some(&3));
+        assert_eq!(iter.next_back(), Some(&3));
+        assert_eq!(iter.next_back(), Some(&1));
+        assert_eq!(iter.next_back(), Some(&1));
+        assert_eq!(iter.next_back(), Some(&0));
+        assert_eq!(iter.next_back(), None);
+
+        // next_back() combine with next()
+        let mut iter = rle.iter();
+        assert_eq!(iter.next_back(), Some(&99));
+        assert_eq!(iter.next(),      Some(&0));
+        assert_eq!(iter.next(),      Some(&1));
+        assert_eq!(iter.next_back(), Some(&9));
+        assert_eq!(iter.next_back(), Some(&3));
+        assert_eq!(iter.next_back(), Some(&3));
+        assert_eq!(iter.next(),      Some(&1));
+        assert_eq!(iter.next_back(), None);
+        assert_eq!(iter.next(),      None);
+
+        // only next_back()
+        let mut iter = RleVec::from(&[0,1,1,3,3,9,99][..]).into_iter();
+        assert_eq!(iter.next_back(), Some(99));
+        assert_eq!(iter.next_back(), Some(9));
+        assert_eq!(iter.next_back(), Some(3));
+        assert_eq!(iter.next_back(), Some(3));
+        assert_eq!(iter.next_back(), Some(1));
+        assert_eq!(iter.next_back(), Some(1));
+        assert_eq!(iter.next_back(), Some(0));
+        assert_eq!(iter.next_back(), None);
+
+        // next_back() combine with next()
+        let mut iter = RleVec::from(&[0,1,1,3,3,9,99][..]).into_iter();
+        assert_eq!(iter.next_back(), Some(99));
+        assert_eq!(iter.next(),      Some(0));
+        assert_eq!(iter.next(),      Some(1));
+        assert_eq!(iter.next_back(), Some(9));
+        assert_eq!(iter.next_back(), Some(3));
+        assert_eq!(iter.next_back(), Some(3));
+        assert_eq!(iter.next(),      Some(1));
+        assert_eq!(iter.next_back(), None);
+        assert_eq!(iter.next(),      None);
+
+        // rare usages of next_back() combine with next()
+        let rle = RleVec::from(&[0][..]);
+        let mut iter = rle.iter();
+        assert_eq!(iter.next_back(), Some(&0));
+        assert_eq!(iter.next(),      None);
+
+        let rle = RleVec::<i32>::from(&[][..]);
+        let mut iter = rle.iter();
+        assert_eq!(iter.next_back(), None);
+        assert_eq!(iter.next(),      None);
     }
 
     #[test]
