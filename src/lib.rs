@@ -637,7 +637,7 @@ impl<T> Index<usize> for RleVec<T> {
 
 default impl<T: Clone> Into<Vec<T>> for RleVec<T> {
     fn into(self) -> Vec<T> {
-        self.iter().cloned().collect()
+        self.into_iter().collect()
     }
 }
 
