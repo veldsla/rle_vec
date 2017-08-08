@@ -13,12 +13,12 @@ fn rle_insert_middle_non_breaking_10_000_runs_of_10_values(b: &mut Bencher) {
     let zeros = repeat(0).take(10);
     let ones = repeat(1).take(10);
     let iter = repeat(zeros.chain(ones)).flat_map(|x| x).take(10_000);
-
-    let mut rle = RleVec::from_iter(iter);
-    let middle_value = rle[5_000];
+    let vec: Vec<_> = iter.collect();
 
     b.iter(|| {
-        rle.insert(5_000, middle_value); // ???
+        let mut rle = RleVec::from(&vec[..]);
+        let middle_value = rle[5_000];
+        rle.insert(5_000, middle_value);
     })
 }
 
@@ -27,11 +27,11 @@ fn rle_insert_middle_breaking_10_000_runs_of_10_values(b: &mut Bencher) {
     let zeros = repeat(0).take(10);
     let ones = repeat(1).take(10);
     let iter = repeat(zeros.chain(ones)).flat_map(|x| x).take(10_000);
-
-    let mut rle = RleVec::from_iter(iter);
+    let vec: Vec<_> = iter.collect();
 
     b.iter(|| {
-        rle.insert(5_000, 424242); // ???
+        let mut rle = RleVec::from(&vec[..]);
+        rle.insert(5_000, 424242);
     })
 }
 
@@ -41,10 +41,11 @@ fn vec_insert_middle_10_000_runs_of_10_values(b: &mut Bencher) {
     let ones = repeat(1).take(10);
     let iter = repeat(zeros.chain(ones)).flat_map(|x| x).take(10_000);
 
-    let mut vec = Vec::from_iter(iter);
-    let middle_value = vec[5_000];
+    let tmp_vec = Vec::from_iter(iter);
 
     b.iter(|| {
+        let mut vec = tmp_vec.clone();
+        let middle_value = vec[5_000];
         vec.insert(5_000, middle_value);
     })
 }
