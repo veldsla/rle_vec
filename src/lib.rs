@@ -18,7 +18,7 @@
 use std::io;
 use std::iter::FromIterator;
 use std::iter::once;
-use std::{ptr, cmp};
+use std::cmp;
 use std::ops::Index;
 
 /// The `RleVec` struct handles like a normal vector and supports a subset from the `Vec` methods.
@@ -748,7 +748,7 @@ impl io::Read for RleVec<u8> {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         let len = cmp::min(buf.len(), self.len());
 
-        let mut buf = buf.as_mut_ptr();
+        let mut offset = 0;
         let mut remaining = len;
         let mut remove_until = 0;
 
@@ -759,10 +759,10 @@ impl io::Read for RleVec<u8> {
             else { remaining };
             remaining -= len;
 
-            unsafe {
-                ptr::write_bytes(buf, *value, len);
-                buf = buf.offset(len as isize);
+            for b in &mut buf[offset..offset + len] {
+                *b = *value;
             }
+            offset += len;
         }
 
         if remove_until > 0 {
