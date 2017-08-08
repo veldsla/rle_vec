@@ -9,7 +9,7 @@ use test::Bencher;
 use rle_vec::RleVec;
 
 #[bench]
-fn rle_insert_middle_non_breaking_10_000_runs_of_10_values(b: &mut Bencher) {
+fn rle_insert_middle_non_breaking_1000_runs_of_10_values(b: &mut Bencher) {
     let zeros = repeat(0).take(10);
     let ones = repeat(1).take(10);
     let iter = repeat(zeros.chain(ones)).flat_map(|x| x).take(10_000);
@@ -23,7 +23,7 @@ fn rle_insert_middle_non_breaking_10_000_runs_of_10_values(b: &mut Bencher) {
 }
 
 #[bench]
-fn rle_insert_middle_breaking_10_000_runs_of_10_values(b: &mut Bencher) {
+fn rle_insert_middle_breaking_1000_runs_of_10_values(b: &mut Bencher) {
     let zeros = repeat(0).take(10);
     let ones = repeat(1).take(10);
     let iter = repeat(zeros.chain(ones)).flat_map(|x| x).take(10_000);
@@ -36,7 +36,7 @@ fn rle_insert_middle_breaking_10_000_runs_of_10_values(b: &mut Bencher) {
 }
 
 #[bench]
-fn vec_insert_middle_10_000_runs_of_10_values(b: &mut Bencher) {
+fn vec_insert_middle_1000_runs_of_10_values(b: &mut Bencher) {
     let zeros = repeat(0).take(10);
     let ones = repeat(1).take(10);
     let iter = repeat(zeros.chain(ones)).flat_map(|x| x).take(10_000);

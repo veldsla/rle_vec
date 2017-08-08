@@ -9,7 +9,7 @@ use test::Bencher;
 use rle_vec::RleVec;
 
 #[bench]
-fn rle_remove_middle_non_breaking_10_000_runs_of_10_values(b: &mut Bencher) {
+fn rle_remove_middle_non_breaking_1000_runs_of_10_values(b: &mut Bencher) {
     b.iter(|| {
         let zeros = repeat(0).take(10);
         let ones = repeat(1).take(10);
@@ -21,7 +21,7 @@ fn rle_remove_middle_non_breaking_10_000_runs_of_10_values(b: &mut Bencher) {
 }
 
 #[bench]
-fn rle_remove_middle_breaking_10_000_equal_values(b: &mut Bencher) {
+fn rle_remove_middle_breaking_1000_equal_values(b: &mut Bencher) {
     b.iter(|| {
         let mut rle = RleVec::from_iter(0..10_000);
         assert_eq!(rle.remove(5_000), 5_000);
@@ -29,7 +29,7 @@ fn rle_remove_middle_breaking_10_000_equal_values(b: &mut Bencher) {
 }
 
 #[bench]
-fn vec_remove_middle_10_000_runs_of_10_values(b: &mut Bencher) {
+fn vec_remove_middle_1000_runs_of_10_values(b: &mut Bencher) {
     b.iter(|| {
         let zeros = repeat(0).take(10);
         let ones = repeat(1).take(10);
