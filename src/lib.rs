@@ -1,3 +1,5 @@
+#![doc(html_root_url = "https://docs.rs/rle_vec/0.3.0")]
+
 //! This crate provides `RleVec`, a vector like structure that stores runs of identical values coded
 //! by the value and the number of repeats.
 //!
