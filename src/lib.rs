@@ -1,5 +1,3 @@
-#![feature(specialization)]
-
 //! This crate provides `RleVec`, a vector like structure that stores runs of identical values coded
 //! by the value and the number of repeats.
 //!
@@ -17,7 +15,7 @@
 //! *\*Benchmarks show that setting `vec[idx] = value` is a lot slower than getting `vec[idx]`*
 //!
 
-use std::io::{self, Read};
+use std::io;
 use std::iter::FromIterator;
 use std::iter::once;
 use std::{ptr, cmp};
@@ -641,17 +639,9 @@ impl<T> Index<usize> for RleVec<T> {
     }
 }
 
-default impl<T: Clone> Into<Vec<T>> for RleVec<T> {
+impl<T: Clone> Into<Vec<T>> for RleVec<T> {
     fn into(self) -> Vec<T> {
         self.into_iter().collect()
-    }
-}
-
-impl Into<Vec<u8>> for RleVec<u8> {
-    fn into(mut self) -> Vec<u8> {
-        let mut vec = Vec::new();
-        self.read_to_end(&mut vec).unwrap();
-        vec
     }
 }
 
