@@ -122,7 +122,7 @@ pub struct RleVec<T> {
     runs: Vec<InternalRun<T>>,
 }
 
-/// Represent a run inside the `RleVec`, can be obtained from the [`iter_runs`](struct.RleVec.html#method.iter_runs). A run is a serie of the same value.
+/// Represent a run inside the `RleVec`, can be obtained from the [`runs`](struct.RleVec.html#method.runs). A run is a serie of the same value.
 ///
 /// # Example
 ///
