@@ -1,7 +1,7 @@
 [package]
 name = "rle_vec"
-version = "0.2.2"
-authors = ["Arno Velds <avelds@gmail.com>"]
+version = "0.3.0" # remember to update html_root_url
+authors = ["Arno Velds <avelds@gmail.com>", "Kerollmops <renault.cle@gmail.com>"]
 repository = "https://github.com/veldsla/rle_vec"
 homepage = "https://github.com/veldsla/rle_vec"
 documentation = "https://docs.rs/rle_vec/"
@@ -13,4 +13,3 @@ A vector like struct that stores data as runs of identical values. Useful for st
 """
 
 [dependencies]
-rustc-serialize = "0.3"
