@@ -106,19 +106,19 @@ use std::ops::Index;
 ///
 /// # Capacity and reallocation
 ///
-/// The capacity of an rle_vector is the amount of space allocated for any future
-/// elements that will be added onto the rle_vector. This is not to be confused with
-/// the *length*, which specifies the number of actual elements.
-/// If an rle_vector's length exceeds its capacity, its capacity
-/// will automatically be increased, but its elements will have to be
-/// reallocated.
+/// The capacity of an rle_vector is the amount of space allocated for any future runs that will be
+/// required for the rle_vector. This is not to be confused with the *length*, which specifies the
+/// number of actual elements that can be indexed from the rle_vector.  If a a run needs to be
+/// added to the rle_vector and the number of runs exceeds its capacity, its capacity will
+/// automatically be increased, but its runs will have to be reallocated.
 ///
-/// For example, an rle_vector with capacity 10 and length 0 would be an empty vector
-/// with space for 10 more elements. Pushing 10 or fewer elements onto the
-/// vector will not change its capacity or cause reallocation to occur. However,
-/// if the rle_vector's length is increased to 11, it will have to reallocate, which
-/// can be slow. For this reason, it is recommended to use `RleVec::with_capacity`
-/// whenever possible to specify how big the rle_vector is expected to get.
+/// For example, an rle_vector with capacity 10 and length 0 would be an empty vector with space
+/// for 10 more runs. Pushing 10 or fewer consecutively different elements onto the vector will
+/// not change its capacity or cause reallocation to occur. However, if the rle_vector's length is
+/// increased to 11, it will have to reallocate, which can be slow. For this reason, if you can
+/// predict the number of runs required in your rle_vector, it is recommended to use
+/// `RleVec::with_capacity` whenever possible to specify how many runs the rle_vector is expected
+/// to store.
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct RleVec<T> {
     runs: Vec<InternalRun<T>>,
@@ -187,7 +187,9 @@ impl<T> RleVec<T> {
     /// assert_eq!(rle.len(), 10);
     /// assert_eq!(rle.runs_len(), 10);
     ///
-    /// // ...but this may make the rle_vector reallocate
+    /// // this definitely won't reallocate the runs
+    /// rle.push(10);
+    /// // while this may make the rle_vector reallocate
     /// rle.push(11);
     /// ```
     pub fn with_capacity(capacity: usize) -> RleVec<T> {
