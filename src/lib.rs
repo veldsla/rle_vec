@@ -780,9 +780,12 @@ impl io::Read for RleVec<u8> {
         Ok(len)
     }
 
-    fn read_to_end(&mut self, mut buf: &mut Vec<u8>) -> io::Result<usize> {
-        buf.reserve(self.len());
-        self.read(&mut buf)
+    fn read_to_end(&mut self, buf: &mut Vec<u8>) -> io::Result<usize> {
+        let len = self.len();
+        buf.reserve(len);
+        buf.extend(self.iter());
+        self.clear();
+        Ok(len)
     }
 
     fn read_exact(&mut self, mut buf: &mut [u8]) -> io::Result<()> {
@@ -1395,7 +1398,7 @@ mod tests {
         let mut rle = RleVec::from(&[1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3][..]);
 
         let mut buf = [0; 11];
-        rle.read(&mut buf).unwrap();
+        assert_eq!(rle.read(&mut buf).unwrap(), 11);
         assert_eq!(buf, [1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3]);
         assert_eq!(rle.len(), 0);
         assert_eq!(rle.runs_len(), 0);
@@ -1427,9 +1430,25 @@ mod tests {
         let mut rle = RleVec::from(&[1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3][..]);
 
         let mut buf = [0; 8];
-        rle.read(&mut buf).unwrap();
+        rle.read_exact(&mut buf).unwrap();
         assert_eq!(buf, [1, 1, 1, 1, 1, 2, 2, 2]);
         assert_eq!(rle.len(), 3);
         assert_eq!(rle.runs_len(), 1);
+
+        //read to end
+        let mut rle = RleVec::from(&[1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3][..]);
+        let mut buf = Vec::new();
+        assert_eq!(rle.read_to_end(&mut buf).unwrap(), 11);
+        assert_eq!(buf, [1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3]);
+        assert_eq!(rle.len(), 0);
+        assert_eq!(rle.runs_len(), 0);
+
+        let mut rle = RleVec::from(&[1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3][..]);
+        let mut buf = vec![0; 5];
+        rle.read_exact(&mut buf[..]).unwrap();
+        assert_eq!(rle.read_to_end(&mut buf).unwrap(), 6);
+        assert_eq!(buf, [1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3]);
+        assert_eq!(rle.len(), 0);
+        assert_eq!(rle.runs_len(), 0);
     }
 }
