@@ -704,24 +704,37 @@ impl<T> Default for RleVec<T> {
 impl<T: Eq> Extend<T> for RleVec<T> {
     fn extend<I>(&mut self, iter: I) where I: IntoIterator<Item=T> {
         let mut iter = iter.into_iter();
-        let mut last_value = iter.next();
-        if last_value.is_some() {
-            let mut len = 0;
-            for (i, value) in iter.enumerate() {
-                let value = Some(value);
-                if value != last_value {
-                    self.runs.push(InternalRun{
-                        end: i,
-                        value: last_value.unwrap(),
-                    });
-                    last_value = value;
+        if let Some(next_value) = iter.next() {
+            // In order te possibly longer use the last run for extending the run-end we do not use the
+            // push function to add values. This gives higher performance to extending the RleVec
+            // with data consisting of large runs.
+            let (pop, end) = if let Some(last_run) = self.runs.last() {
+                if last_run.value == next_value {
+                    (true, last_run.end + 1)
+                } else {
+                    (false, last_run.end + 1)
                 }
-                len = i + 1;
+            } else {
+                (false, 0)
+            };
+
+            let mut rle_last = if pop {
+                let mut run = self.runs.pop().unwrap();
+                run.end = end;
+                run
+            } else {
+                InternalRun { value: next_value, end: end }
+            };
+
+            for value in iter {
+                if value != rle_last.value {
+                    let next_end = rle_last.end;
+                    self.runs.push(rle_last);
+                    rle_last = InternalRun { value: value, end: next_end };
+                }
+                rle_last.end += 1;
             }
-            self.runs.push(InternalRun{
-                end: len,
-                value: last_value.unwrap(),
-            });
+            self.runs.push(rle_last);
         }
     }
 }
