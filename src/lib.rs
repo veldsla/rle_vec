@@ -425,6 +425,7 @@ impl<T: Eq> RleVec<T> {
     /// rle.push(1);
     /// assert_eq!(rle[0], 1);
     /// ```
+    #[inline]
     pub fn push(&mut self, value: T) {
         self.push_n(1, value);
     }
@@ -1142,9 +1143,21 @@ mod tests {
         rle.push_n(3, 4);
         assert_eq!(rle.len(), 13);
         assert_eq!(rle.runs_len(), 4);
+        assert_eq!(rle.last(), Some(&4));
         rle.push_n(3, 5);
         assert_eq!(rle.len(), 16);
         assert_eq!(rle.runs_len(), 5);
+        assert_eq!(rle.last(), Some(&5));
+        assert_eq!(rle.last_run(), Some(Run {value: &5, len: 3}));
+        rle.clear();
+        assert_eq!(rle.len(), 0);
+        assert_eq!(rle.runs_len(), 0);
+        assert_eq!(rle.last(), None);
+        assert_eq!(rle.last_run(), None);
+
+        let mut rle = RleVec::default();
+        rle.push(1);
+        assert_eq!(rle.len(), 1);
     }
 
     #[test]
@@ -1156,23 +1169,55 @@ mod tests {
         assert_eq!(rle.runs_len(), 1);
         assert_eq!(rle[0], 10);
 
-        let mut rle = RleVec::from(&[1, 1, 1, 1, 2, 2, 2, 3, 3, 4][..]);
+        let mut rle = RleVec::from(&[1, 1, 1, 1, 2, 2, 2, 3, 3, 4, 5][..]);
+        assert_eq!(rle.to_vec(), vec![1,1,1,1,2,2,2,3,3,4, 5]);
 
-        assert_eq!((0..10).map(|i| rle[i]).collect::<Vec<_>>(), vec![1,1,1,1,2,2,2,3,3,4]);
-
-        rle.set(2, 1);
-        assert_eq!((0..10).map(|i| rle[i]).collect::<Vec<_>>(), vec![1,1,1,1,2,2,2,3,3,4]);
+        //set no change
+        //run size > 1
         rle.set(0, 1);
-        assert_eq!((0..10).map(|i| rle[i]).collect::<Vec<_>>(), vec![1,1,1,1,2,2,2,3,3,4]);
-        rle.set(0, 2);
-        assert_eq!((0..10).map(|i| rle[i]).collect::<Vec<_>>(), vec![2,1,1,1,2,2,2,3,3,4]);
-        rle.set(6, 5);
-        rle.set(9, 2);
-        assert_eq!((0..10).map(|i| rle[i]).collect::<Vec<_>>(), vec![2,1,1,1,2,2,5,3,3,2]);
-        rle.set(2, 4);
-        assert_eq!((0..10).map(|i| rle[i]).collect::<Vec<_>>(), vec![2,1,4,1,2,2,5,3,3,2]);
+        assert_eq!(rle.to_vec(), vec![1,1,1,1,2,2,2,3,3,4, 5]);
         rle.set(2, 1);
-        assert_eq!((0..10).map(|i| rle[i]).collect::<Vec<_>>(), vec![2,1,1,1,2,2,5,3,3,2]);
+        assert_eq!(rle.to_vec(), vec![1,1,1,1,2,2,2,3,3,4, 5]);
+        rle.set(4, 2);
+        assert_eq!(rle.to_vec(), vec![1,1,1,1,2,2,2,3,3,4, 5]);
+        rle.set(6, 2);
+        assert_eq!(rle.to_vec(), vec![1,1,1,1,2,2,2,3,3,4, 5]);
+        //run size == 1
+        rle.set(9, 4);
+        assert_eq!(rle.to_vec(), vec![1,1,1,1,2,2,2,3,3,4, 5]);
+        rle.set(10, 5);
+        assert_eq!(rle.to_vec(), vec![1,1,1,1,2,2,2,3,3,4, 5]);
+
+        //set change no joins
+        //run size > 1
+        rle.set(0, 2);
+        assert_eq!(rle.to_vec(), vec![2,1,1,1,2,2,2,3,3,4, 5]);
+        rle.set(2, 2);
+        assert_eq!(rle.to_vec(), vec![2,1,2,1,2,2,2,3,3,4, 5]);
+        rle.set(4, 3);
+        assert_eq!(rle.to_vec(), vec![2,1,2,1,3,2,2,3,3,4, 5]);
+        rle.set(8, 7);
+        assert_eq!(rle.to_vec(), vec![2,1,2,1,3,2,2,3,7,4, 5]);
+        //run size == 1
+        rle.set(0, 3);
+        assert_eq!(rle.to_vec(), vec![3,1,2,1,3,2,2,3,7,4, 5]);
+        rle.set(3, 4);
+        assert_eq!(rle.to_vec(), vec![3,1,2,4,3,2,2,3,7,4, 5]);
+        rle.set(10, 7);
+        assert_eq!(rle.to_vec(), vec![3,1,2,4,3,2,2,3,7,4, 7]);
+        assert_eq!(rle.runs_len(), 10);
+
+        //set change, with join
+        rle.set(0, 1);
+        assert_eq!(rle.to_vec(), vec![1,1,2,4,3,2,2,3,7,4, 7]);
+        assert_eq!(rle.runs_len(), 9);
+        rle.set(5, 3);
+        assert_eq!(rle.runs_len(), 9);
+        rle.set(6, 3);
+        assert_eq!(rle.to_vec(), vec![1,1,2,4,3,3,3,3,7,4, 7]);
+        assert_eq!(rle.runs_len(), 7);
+        rle.set(10, 4);
+        assert_eq!(rle.to_vec(), vec![1,1,2,4,3,3,3,3,7,4, 4]);
         assert_eq!(rle.runs_len(), 6);
     }
 
@@ -1244,11 +1289,14 @@ mod tests {
     }
 
     #[test]
-    fn from_vec() {
+    fn from_slice() {
         let v = vec![0,0,0,1,1,1,1,1,1,1,3,3,1,0,99,99,9];
         let rle = RleVec::from(&v[..]);
         assert_eq!((0..v.len()).map(|i| rle[i]).collect::<Vec<_>>(), v);
         assert_eq!(rle.len(),17);
+
+        let v2: Vec<_> = rle.into();
+        assert_eq!(v2,v);
     }
 
     #[test]
@@ -1287,6 +1335,10 @@ mod tests {
         assert_eq!(rle.iter().skip(13).min(), Some(&0));
         assert_eq!(rle.iter().skip(13).take(2).max(), Some(&90));
         assert_eq!(rle.iter().skip(13).take(2).min(), Some(&0));
+
+        assert_eq!(rle.iter().count(), 17);
+        assert_eq!(rle.iter().skip(10).last(), Some(&99));
+        assert_eq!(rle.iter().skip(30).last(), None);
 
         //runiters
         assert_eq!(rle.runs().map(|r| r.value).collect::<Vec<_>>(), vec![&0,&1,&3,&123,&0,&90,&99]);
@@ -1390,6 +1442,11 @@ mod tests {
         assert_eq!(iterator.nth(1), Some(Run{ len: 3, value: &3 }));
         assert_eq!(iterator.nth(0), Some(Run{ len: 4, value: &5 }));
         assert_eq!(iterator.nth(0), None);
+
+        assert_eq!(rle.runs().count(), 4);
+        assert_eq!(rle.runs().last(), Some(Run{ len: 4, value: &5 }));
+        assert_eq!(rle.runs().skip(10).last(), None);
+
     }
 
     #[test]
@@ -1402,6 +1459,24 @@ mod tests {
         let rle = RleVec::<i64>::new();
         assert!(rle.starts().is_empty());
         assert!(rle.ends().is_empty());
+    }
+
+    #[test]
+    fn write_trait() {
+        use std::io::Write;
+        let data_in = vec![1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3];
+        let mut rle = RleVec::new();
+        rle.write_all(data_in.as_slice()).unwrap();
+        assert_eq!(rle.runs_len(),3);
+        assert_eq!(rle.len(),11);
+
+        rle.write(&data_in[6..]).unwrap();
+        assert_eq!(rle.runs_len(),5);
+        assert_eq!(rle.len(),16);
+
+        rle.write(&[3,3,3]).unwrap();
+        assert_eq!(rle.runs_len(),5);
+        assert_eq!(rle.len(),19);
     }
 
     #[test]
