@@ -9,7 +9,7 @@ use test::Bencher;
 use rle_vec::RleVec;
 
 #[bench]
-fn rle_loop_10_000_unique_values(b: &mut Bencher) {
+fn rle_iterate_1_000_unique_values(b: &mut Bencher) {
     let rle = RleVec::from_iter(0..10_000);
     b.iter(|| {
         for (i, v) in rle.iter().enumerate() {
@@ -19,7 +19,7 @@ fn rle_loop_10_000_unique_values(b: &mut Bencher) {
 }
 
 #[bench]
-fn vec_loop_10_000_unique_values(b: &mut Bencher) {
+fn vec_iterate_1_000_unique_values(b: &mut Bencher) {
     let vec = Vec::from_iter(0..10_000);
     b.iter(|| {
         for (i, v) in vec.iter().enumerate() {
@@ -29,7 +29,7 @@ fn vec_loop_10_000_unique_values(b: &mut Bencher) {
 }
 
 #[bench]
-fn rle_loop_10_000_equal_values(b: &mut Bencher) {
+fn rle_iterate_1_000_equal_values(b: &mut Bencher) {
     let rle = RleVec::from_iter(repeat(0).take(10_000));
     b.iter(|| {
         for v in rle.iter() {
@@ -39,7 +39,7 @@ fn rle_loop_10_000_equal_values(b: &mut Bencher) {
 }
 
 #[bench]
-fn vec_loop_10_000_equal_values(b: &mut Bencher) {
+fn vec_iterate_1_000_equal_values(b: &mut Bencher) {
     let vec = Vec::from_iter(repeat(0).take(10_000));
     b.iter(|| {
         for v in vec.iter() {
@@ -49,7 +49,7 @@ fn vec_loop_10_000_equal_values(b: &mut Bencher) {
 }
 
 #[bench]
-fn rle_loop_10_000_runs_of_10_values(b: &mut Bencher) {
+fn rle_iterate_1_000_runs_of_10_values(b: &mut Bencher) {
     let zeros = repeat(0).take(10);
     let ones = repeat(1).take(10);
     let iter = repeat(zeros.chain(ones)).flat_map(|x| x).take(10_000);
@@ -63,7 +63,7 @@ fn rle_loop_10_000_runs_of_10_values(b: &mut Bencher) {
 }
 
 #[bench]
-fn vec_loop_10_000_runs_of_10_values(b: &mut Bencher) {
+fn vec_iterate_1_000_runs_of_10_values(b: &mut Bencher) {
     let zeros = repeat(0).take(10);
     let ones = repeat(1).take(10);
     let iter = repeat(zeros.chain(ones)).flat_map(|x| x).take(10_000);
@@ -72,6 +72,36 @@ fn vec_loop_10_000_runs_of_10_values(b: &mut Bencher) {
     b.iter(|| {
         for v in vec.iter() {
             assert!(*v == 0 || *v == 1); // ugly
+        }
+    })
+}
+
+#[bench]
+fn rle_random_access_all_from_1_000_runs_of_10_values(b: &mut Bencher) {
+    let zeros = repeat(0).take(10);
+    let ones = repeat(1).take(10);
+    let iter = repeat(zeros.chain(ones)).flat_map(|x| x).take(10_000);
+
+    let rle = RleVec::from_iter(iter);
+    let len = rle.len();
+    b.iter(|| {
+        for i in 0..len {
+            let _ = rle[i];
+        }
+    })
+}
+
+#[bench]
+fn vec_random_access_all_from_1_000_runs_of_10_values(b: &mut Bencher) {
+    let zeros = repeat(0).take(10);
+    let ones = repeat(1).take(10);
+    let iter = repeat(zeros.chain(ones)).flat_map(|x| x).take(10_000);
+
+    let vec = Vec::from_iter(iter);
+    let len = vec.len();
+    b.iter(|| {
+        for i in 0..len {
+            let _ = vec[i];
         }
     })
 }
