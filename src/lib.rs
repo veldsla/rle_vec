@@ -762,6 +762,10 @@ impl io::Write for RleVec<u8> {
     fn flush(&mut self) -> io::Result<()> { Ok( () ) }
 }
 
+/// The `Read` trait is implemted to complement the `Write` trait. However every `read` from the
+/// RleVec requires an update to all remaining runs. The impact will be smallest when using a large
+/// enough buffer of when very few runs are allocated. **If unsure use the Iterator to stream the
+/// contents**.
 impl io::Read for RleVec<u8> {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         let len = cmp::min(buf.len(), self.len());
