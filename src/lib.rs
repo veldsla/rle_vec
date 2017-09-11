@@ -19,7 +19,7 @@
 
 use std::io;
 use std::iter::FromIterator;
-use std::iter::once;
+use std::iter::{once, repeat};
 use std::cmp;
 use std::ops::Index;
 
@@ -472,7 +472,14 @@ impl<T: Clone> RleVec<T> {
     /// assert_eq!(vec.as_slice(), slice);
     /// ```
     pub fn to_vec(&self) -> Vec<T> {
-        self.iter().cloned().collect()
+        let mut res = Vec::with_capacity(self.len());
+        let mut p = 0;
+        for r in &self.runs {
+            let n = r.end - p + 1;
+            res.extend(repeat(r.value.clone()).take(n));
+            p += n;
+        }
+        res
     }
 }
 
