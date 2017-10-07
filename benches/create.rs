@@ -75,7 +75,7 @@ fn vec_create_10_000_equal_values_from_slice(b: &mut Bencher) {
 }
 
 #[bench]
-fn rle_create_1_000_runs_of_10_values_from_iter(b: &mut Bencher) {
+fn rle_create_1000_runs_of_10_values_from_iter(b: &mut Bencher) {
     b.iter(|| {
         let zeros = repeat(0).take(10);
         let ones = repeat(1).take(10);
@@ -85,7 +85,7 @@ fn rle_create_1_000_runs_of_10_values_from_iter(b: &mut Bencher) {
     })
 }
 #[bench]
-fn vec_create_1_000_runs_of_10_values_from_iter(b: &mut Bencher) {
+fn vec_create_1000_runs_of_10_values_from_iter(b: &mut Bencher) {
     b.iter(|| {
         let zeros = repeat(0).take(10);
         let ones = repeat(1).take(10);
@@ -96,7 +96,7 @@ fn vec_create_1_000_runs_of_10_values_from_iter(b: &mut Bencher) {
 }
 
 #[bench]
-fn rle_create_1_000_runs_of_10_values_from_slice(b: &mut Bencher) {
+fn rle_create_1000_runs_of_10_values_from_slice(b: &mut Bencher) {
     let zeros = repeat(0).take(10);
     let ones = repeat(1).take(10);
     let iter = repeat(zeros.chain(ones)).flat_map(|x| x).take(10_000);
@@ -109,7 +109,7 @@ fn rle_create_1_000_runs_of_10_values_from_slice(b: &mut Bencher) {
     })
 }
 #[bench]
-fn vec_create_1_000_runs_of_10_values_from_slice(b: &mut Bencher) {
+fn vec_create_1000_runs_of_10_values_from_slice(b: &mut Bencher) {
     let zeros = repeat(0).take(10);
     let ones = repeat(1).take(10);
     let iter = repeat(zeros.chain(ones)).flat_map(|x| x).take(10_000);

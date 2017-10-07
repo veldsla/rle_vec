@@ -42,14 +42,14 @@ fn rle_iterate_10_000_equal_values(b: &mut Bencher) {
 fn vec_iterate_10_000_equal_values(b: &mut Bencher) {
     let vec = Vec::from_iter(repeat(0).take(10_000));
     b.iter(|| {
-        for v in vec.iter() {
+        for v in &vec {
             assert_eq!(*v, 0);
         }
     })
 }
 
 #[bench]
-fn rle_iterate_1_000_runs_of_10_values(b: &mut Bencher) {
+fn rle_iterate_1000_runs_of_10_values(b: &mut Bencher) {
     let zeros = repeat(0).take(10);
     let ones = repeat(1).take(10);
     let iter = repeat(zeros.chain(ones)).flat_map(|x| x).take(10_000);
@@ -63,21 +63,21 @@ fn rle_iterate_1_000_runs_of_10_values(b: &mut Bencher) {
 }
 
 #[bench]
-fn vec_iterate_1_000_runs_of_10_values(b: &mut Bencher) {
+fn vec_iterate_1000_runs_of_10_values(b: &mut Bencher) {
     let zeros = repeat(0).take(10);
     let ones = repeat(1).take(10);
     let iter = repeat(zeros.chain(ones)).flat_map(|x| x).take(10_000);
 
     let vec = Vec::from_iter(iter);
     b.iter(|| {
-        for v in vec.iter() {
+        for v in &vec {
             assert!(*v == 0 || *v == 1); // ugly
         }
     })
 }
 
 #[bench]
-fn rle_random_access_1_000_runs_of_10_values(b: &mut Bencher) {
+fn rle_random_access_1000_runs_of_10_values(b: &mut Bencher) {
     let zeros = repeat(0).take(10);
     let ones = repeat(1).take(10);
     let iter = repeat(zeros.chain(ones)).flat_map(|x| x).take(10_000);
@@ -94,7 +94,7 @@ fn rle_random_access_1_000_runs_of_10_values(b: &mut Bencher) {
 }
 
 #[bench]
-fn vec_random_access_1_000_runs_of_10_values(b: &mut Bencher) {
+fn vec_random_access_1000_runs_of_10_values(b: &mut Bencher) {
     let zeros = repeat(0).take(10);
     let ones = repeat(1).take(10);
     let iter = repeat(zeros.chain(ones)).flat_map(|x| x).take(10_000);

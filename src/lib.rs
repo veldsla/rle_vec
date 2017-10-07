@@ -14,8 +14,6 @@
 //! |`RleVec`|O(1)|O(log&nbsp;n)|O((log&nbsp;n)&nbsp;+&nbsp;2n)|O(log&nbsp;n)|O((log&nbsp;n)&nbsp;+&nbsp;2n)|O((log&nbsp;n)&nbsp;+&nbsp;n)|
 //! |`Vec`|O(1)|O(1)|O(1)*| |O(n)| |
 //!
-//! *\*Benchmarks show that setting `vec[idx] = value` is a lot slower than getting `vec[idx]`*
-//!
 
 use std::io;
 use std::iter::FromIterator;
@@ -106,18 +104,18 @@ use std::ops::Index;
 ///
 /// # Capacity and reallocation
 ///
-/// The capacity of an rle_vector is the amount of space allocated for any future runs that will be
-/// required for the rle_vector. This is not to be confused with the *length*, which specifies the
-/// number of actual elements that can be indexed from the rle_vector.  If a a run needs to be
-/// added to the rle_vector and the number of runs exceeds its capacity, its capacity will
+/// The capacity of an `RleVec` is the amount of space allocated for any future runs that will be
+/// required for the `RleVec`. This is not to be confused with the *length*, which specifies the
+/// number of actual elements that can be indexed from the `RleVec`.  If a a run needs to be
+/// added to the `RleVec` and the number of runs exceeds its capacity, its capacity will
 /// automatically be increased, but its runs will have to be reallocated.
 ///
-/// For example, an rle_vector with capacity 10 and length 0 would be an empty vector with space
+/// For example, an `RleVec` with capacity 10 and length 0 would be an empty vector with space
 /// for 10 more runs. Pushing 10 or fewer consecutively different elements onto the vector will
-/// not change its capacity or cause reallocation to occur. However, if the rle_vector's length is
+/// not change its capacity or cause reallocation to occur. However, if the `RleVec`'s length is
 /// increased to 11, it will have to reallocate, which can be slow. For this reason, if you can
-/// predict the number of runs required in your rle_vector, it is recommended to use
-/// `RleVec::with_capacity` whenever possible to specify how many runs the rle_vector is expected
+/// predict the number of runs required in your `RleVec`, it is recommended to use
+/// `RleVec::with_capacity` whenever possible to specify how many runs the `RleVec` is expected
 /// to store.
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct RleVec<T> {
@@ -460,6 +458,9 @@ impl<T: Eq> RleVec<T> {
 impl<T: Clone> RleVec<T> {
     /// Construct a `Vec<T>` from this `RleVec`.
     ///
+    /// The values of the `RleVec` are cloned to produce the final `Vec`.
+    /// This can be usefull for debugging.
+    ///
     /// # Example
     /// ```
     /// # use rle_vec::RleVec;
@@ -800,7 +801,7 @@ impl<'a, T: 'a> IntoIterator for &'a RleVec<T> {
 
     fn into_iter(self) -> Self::IntoIter {
         Iter {
-            rle: &self,
+            rle: self,
             run_index: 0,
             index: 0,
             run_index_back: self.runs.len().saturating_sub(1),
@@ -816,12 +817,12 @@ impl<'a, T: 'a> Iterator for Iter<'a, T> {
         if self.index == self.index_back {
             return None
         }
-        let value = &self.rle.runs[self.run_index].value;
+        let run = &self.rle.runs[self.run_index];
         self.index += 1;
-        if self.index > self.rle.runs[self.run_index].end {
+        if self.index > run.end {
             self.run_index += 1;
         }
-        Some(value)
+        Some(&run.value)
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
@@ -870,6 +871,8 @@ impl<'a, T: 'a> DoubleEndedIterator for Iter<'a, T> {
 /// Immutable `RelVec` iterator over runs.
 ///
 /// Can be obtained from the [`runs`](struct.RleVec.html#method.runs) method.
+/// Because internally runs are stored using the end values a new Run is
+/// allocated in each iteration.
 ///
 /// # Example
 /// ```

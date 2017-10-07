@@ -25,7 +25,7 @@ fn rle_set_runmids_non_breaking_1000_runs_of_10_values(b: &mut Bencher) {
             val = if val == 0 { 1 } else { 0 };
         }
         assert_eq!(rle.len(), 10_000);
-        assert_eq!(rle.runs_len(), 1_000);
+        assert_eq!(rle.runs_len(), 1000);
     })
 }
 
@@ -46,7 +46,7 @@ fn rle_set_runmids_breaking_1000_runs_of_10_values(b: &mut Bencher) {
             val = if val == 0 { 1 } else { 0 };
         }
         assert_eq!(rle.len(), 10_000);
-        assert_eq!(rle.runs_len(), 3_000);
+        assert_eq!(rle.runs_len(), 3000);
     })
 }
 
@@ -64,7 +64,7 @@ fn rle_set_runs_merging_1000_runs(b: &mut Bencher) {
             rle.set(i, 0);
             i += 11;
         }
-        assert_eq!(rle.len(), 5_500);
+        assert_eq!(rle.len(), 5500);
         assert_eq!(rle.runs_len(), 1);
     })
 }
@@ -102,6 +102,6 @@ fn vec_set_runs_merging_1000_runs(b: &mut Bencher) {
             vec[i] = 0;
             i += 11;
         }
-        assert_eq!(vec.len(), 5_500);
+        assert_eq!(vec.len(), 5500);
     })
 }
