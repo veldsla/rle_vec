@@ -88,7 +88,7 @@ cannot work for `RleVec`.
  * Allocate gigantic vectors with a starting value and (randomly) update
    positions under the assumption the data is going to remain sparse. The
 update step will be slower than using a `Vec`.
- * Oviously the savings are bigger when the size of `T` in `RleVEc<T>` is
+ * Obviously the savings are bigger when the size of `T` in `RleVec<T>` is
    large.
  * If you want to reduce an in memory structure before for example serializing.
 
@@ -122,7 +122,7 @@ vec_create_10_000_unique_values_from_iter    ... bench:         921 ns/iter (+/-
 ```
 
 ### Access
-Random access takes the binary search penalty, but iterating performes reasonable.
+Random access takes the binary search penalty, but iterating performs reasonable.
 ```
 rle_iterate_1000_runs_of_10_values       ... bench:      19,773 ns/iter (+/- 481)
 vec_iterate_1000_runs_of_10_values       ... bench:       4,981 ns/iter (+/- 2,171)
