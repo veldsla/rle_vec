@@ -11,7 +11,7 @@ feaures. @Kerollmops kindly offered to join the project and is now a co-maintain
 ### New features
  * Added methods `remove`, `clear`, `to_vec` to `RleVec`
  * The RleVec Iterator now implements the `ExactSizeIterator` and `DoubleEndedIterator` traits
- * Implemented traits `Default`, `Read`, `Write`, `Extend`, `Into<Vec<T>>` and `IntoIterator` for `RleVec`
+ * Implemented traits `Default`, `Write`, `Extend` and `Into<Vec<T>>` for `RleVec`
  * Greatly increased the number of benchmarks
  * Reorganised and increased number of tests
 
