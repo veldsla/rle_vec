@@ -13,8 +13,6 @@ where `n` is equal to the number of runs, not the length of a comparable `Vec`.
 |`RleVec`|O(1)|O(log&nbsp;n)|O((log&nbsp;n)&nbsp;+&nbsp;2n)|O(log&nbsp;n)|O((log&nbsp;n)&nbsp;+&nbsp;2n)|O((log&nbsp;n)&nbsp;+&nbsp;n)|
 |`Vec`|O(1)|O(1)|O(1)*| |O(n)| |
 
- \* *Benchmarks show that setting `vec[idx] = value` is a lot slower than getting `vec[idx]`*
-
  The `RleVec` struct handles like a normal vector and supports a subset from the `Vec` methods.
 
 ## Usage
