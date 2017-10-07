@@ -460,8 +460,6 @@ impl<T: Eq> RleVec<T> {
 impl<T: Clone> RleVec<T> {
     /// Construct a `Vec<T>` from this `RleVec`.
     ///
-    /// Prefer using `into` **if a copy is not needed**!
-    ///
     /// # Example
     /// ```
     /// # use rle_vec::RleVec;
@@ -653,7 +651,7 @@ impl<T> Index<usize> for RleVec<T> {
 
 impl<T: Clone> Into<Vec<T>> for RleVec<T> {
     fn into(self) -> Vec<T> {
-        self.into_iter().collect()
+        self.to_vec()
     }
 }
 
@@ -769,55 +767,6 @@ impl io::Write for RleVec<u8> {
     fn flush(&mut self) -> io::Result<()> { Ok( () ) }
 }
 
-/// The `Read` trait is implemted to complement the `Write` trait. However every `read` from the
-/// RleVec requires an update to all remaining runs. The impact will be smallest when using a large
-/// enough buffer of when very few runs are allocated. **If unsure use the Iterator to stream the
-/// contents**.
-impl io::Read for RleVec<u8> {
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        let len = cmp::min(buf.len(), self.len());
-
-        let mut offset = 0;
-        let mut remaining = len;
-        let mut remove_until = 0;
-
-        for (i, Run{ len, value }) in self.runs().enumerate() {
-
-            let len = if len < remaining { len }
-            else if len == remaining { remove_until = i + 1; remaining }
-            else { remaining };
-            remaining -= len;
-
-            for b in &mut buf[offset..offset + len] {
-                *b = *value;
-            }
-            offset += len;
-        }
-
-        if remove_until > 0 {
-            self.runs = self.runs.split_off(remove_until);
-        }
-
-        for run in self.runs.iter_mut() {
-            run.end -= len;
-        }
-
-        Ok(len)
-    }
-
-    fn read_to_end(&mut self, buf: &mut Vec<u8>) -> io::Result<usize> {
-        let len = self.len();
-        buf.reserve(len);
-        buf.extend(self.iter());
-        self.clear();
-        Ok(len)
-    }
-
-    fn read_exact(&mut self, mut buf: &mut [u8]) -> io::Result<()> {
-        self.read(&mut buf).map(|_| ())
-    }
-}
-
 /// Immutable `RelVec` iterator over references of values.
 ///
 /// Can be obtained from the [`iter`](struct.RleVec.html#method.iter) or the `into_iter` methods.
@@ -915,108 +864,6 @@ impl<'a, T: 'a> DoubleEndedIterator for Iter<'a, T> {
             self.run_index_back -= 1;
         }
         Some(&self.rle.runs[self.run_index_back].value)
-    }
-}
-
-/// Immutable `RelVec` iterator over values.
-///
-/// Can be obtained from the `into_iter` method.
-///
-/// # Example
-/// ```
-/// # use rle_vec::RleVec;
-/// let rle = RleVec::from(&[1, 1, 1, 1, 2, 2, 3][..]);
-///
-/// let mut iterator = rle.into_iter();
-/// assert_eq!(iterator.next(), Some(1));
-/// assert_eq!(iterator.next(), Some(1));
-/// assert_eq!(iterator.next(), Some(1));
-/// assert_eq!(iterator.next(), Some(1));
-/// assert_eq!(iterator.next(), Some(2));
-/// assert_eq!(iterator.next(), Some(2));
-/// assert_eq!(iterator.next(), Some(3));
-/// assert_eq!(iterator.next(), None);
-/// ```
-pub struct IntoIter<T> {
-    rle: RleVec<T>,
-    run_index: usize,
-    index: usize,
-    index_back: usize,
-    run_index_back: usize,
-}
-
-impl<T: Clone> IntoIterator for RleVec<T> {
-    type Item = T;
-    type IntoIter = IntoIter<T>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        let run_index_back = self.runs.len().saturating_sub(1);
-        let index_back = self.len(); // starts out of range
-        IntoIter {
-            rle: self,
-            run_index: 0,
-            index: 0,
-            run_index_back,
-            index_back,
-        }
-    }
-}
-
-impl<T: Clone> Iterator for IntoIter<T> {
-    type Item = T;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.index == self.index_back {
-            return None
-        }
-        let value = self.rle.runs[self.run_index].value.clone();
-        self.index += 1;
-        if self.index > self.rle.runs[self.run_index].end {
-            self.run_index += 1;
-        }
-        Some(value)
-    }
-
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        let len = self.rle.len() - self.index;
-        (len, Some(len))
-    }
-
-    fn count(self) -> usize {
-        // thanks to the ExactSizeIterator impl
-        self.len()
-    }
-
-    fn last(self) -> Option<Self::Item> {
-        if self.index == self.rle.len() {
-            return None
-        }
-        self.rle.last().cloned()
-    }
-
-    fn nth(&mut self, n: usize) -> Option<Self::Item> {
-        self.index = cmp::min(self.index + n, self.rle.len());
-        self.run_index = if self.index < self.rle.len() {
-            self.rle.run_index(self.index)
-        } else {
-            self.rle.runs.len() - 1
-        };
-        self.next()
-    }
-}
-
-impl<T: Clone> ExactSizeIterator for IntoIter<T> { }
-
-impl<T: Clone> DoubleEndedIterator for IntoIter<T> {
-    fn next_back(&mut self) -> Option<Self::Item> {
-        if self.index_back == self.index {
-            return None
-        }
-        self.index_back -= 1;
-        if self.run_index_back > 0 && self.index_back <= self.rle.runs[self.run_index_back - 1].end {
-            self.run_index_back -= 1;
-        }
-        Some(self.rle.runs[self.run_index_back].value.clone())
     }
 }
 
@@ -1391,29 +1238,6 @@ mod tests {
         assert_eq!(iter.next_back(), None);
         assert_eq!(iter.next(),      None);
 
-        // only next_back()
-        let mut iter = RleVec::from(&[0,1,1,3,3,9,99][..]).into_iter();
-        assert_eq!(iter.next_back(), Some(99));
-        assert_eq!(iter.next_back(), Some(9));
-        assert_eq!(iter.next_back(), Some(3));
-        assert_eq!(iter.next_back(), Some(3));
-        assert_eq!(iter.next_back(), Some(1));
-        assert_eq!(iter.next_back(), Some(1));
-        assert_eq!(iter.next_back(), Some(0));
-        assert_eq!(iter.next_back(), None);
-
-        // next_back() combine with next()
-        let mut iter = RleVec::from(&[0,1,1,3,3,9,99][..]).into_iter();
-        assert_eq!(iter.next_back(), Some(99));
-        assert_eq!(iter.next(),      Some(0));
-        assert_eq!(iter.next(),      Some(1));
-        assert_eq!(iter.next_back(), Some(9));
-        assert_eq!(iter.next_back(), Some(3));
-        assert_eq!(iter.next_back(), Some(3));
-        assert_eq!(iter.next(),      Some(1));
-        assert_eq!(iter.next_back(), None);
-        assert_eq!(iter.next(),      None);
-
         // rare usages of next_back() combine with next()
         let rle = RleVec::from(&[0][..]);
         let mut iter = rle.iter();
@@ -1488,66 +1312,5 @@ mod tests {
         rle.write(&[3,3,3]).unwrap();
         assert_eq!(rle.runs_len(),5);
         assert_eq!(rle.len(),19);
-    }
-
-    #[test]
-    fn read_trait() {
-        use std::io::Read;
-
-        let mut rle = RleVec::from(&[1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3][..]);
-
-        let mut buf = [0; 11];
-        assert_eq!(rle.read(&mut buf).unwrap(), 11);
-        assert_eq!(buf, [1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3]);
-        assert_eq!(rle.len(), 0);
-        assert_eq!(rle.runs_len(), 0);
-
-        let mut rle = RleVec::from(&[1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3][..]);
-
-        let mut buf = [0; 4];
-        rle.read(&mut buf).unwrap();
-        assert_eq!(buf, [1, 1, 1, 1]);
-        assert_eq!(rle.len(), 7);
-        assert_eq!(rle.runs_len(), 3);
-
-        let mut rle = RleVec::from(&[1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3][..]);
-
-        let mut buf = [0; 0];
-        rle.read(&mut buf).unwrap();
-        assert_eq!(buf, []);
-        assert_eq!(rle.len(), 11);
-        assert_eq!(rle.runs_len(), 3);
-
-        let mut rle = RleVec::from(&[1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3][..]);
-
-        let mut buf = [0; 5];
-        rle.read(&mut buf).unwrap();
-        assert_eq!(buf, [1, 1, 1, 1, 1]);
-        assert_eq!(rle.len(), 6);
-        assert_eq!(rle.runs_len(), 2);
-
-        let mut rle = RleVec::from(&[1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3][..]);
-
-        let mut buf = [0; 8];
-        rle.read_exact(&mut buf).unwrap();
-        assert_eq!(buf, [1, 1, 1, 1, 1, 2, 2, 2]);
-        assert_eq!(rle.len(), 3);
-        assert_eq!(rle.runs_len(), 1);
-
-        //read to end
-        let mut rle = RleVec::from(&[1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3][..]);
-        let mut buf = Vec::new();
-        assert_eq!(rle.read_to_end(&mut buf).unwrap(), 11);
-        assert_eq!(buf, [1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3]);
-        assert_eq!(rle.len(), 0);
-        assert_eq!(rle.runs_len(), 0);
-
-        let mut rle = RleVec::from(&[1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3][..]);
-        let mut buf = vec![0; 5];
-        rle.read_exact(&mut buf[..]).unwrap();
-        assert_eq!(rle.read_to_end(&mut buf).unwrap(), 6);
-        assert_eq!(buf, [1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3]);
-        assert_eq!(rle.len(), 0);
-        assert_eq!(rle.runs_len(), 0);
     }
 }
