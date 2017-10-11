@@ -1,7 +1,7 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
-## [0.3] - Unreleased
+## [0.3] - 2017-10-11
 Thanks to a huge pull-request by @Kerollmops the RleVec know provides a more complete set of
 feaures. @Kerollmops kindly offered to join the project and is now a co-maintainer.
 
