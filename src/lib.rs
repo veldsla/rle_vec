@@ -1,4 +1,4 @@
-#![doc(html_root_url = "https://docs.rs/rle_vec/0.3.0")]
+#![doc(html_root_url = "https://docs.rs/rle_vec/0.3.1")]
 
 //! This crate provides `RleVec`, a vector like structure that stores runs of identical values coded
 //! by the value and the number of repeats.
@@ -14,6 +14,9 @@
 //! |`RleVec`|O(1)|O(log&nbsp;n)|O((log&nbsp;n)&nbsp;+&nbsp;2n)|O(log&nbsp;n)|O((log&nbsp;n)&nbsp;+&nbsp;2n)|O((log&nbsp;n)&nbsp;+&nbsp;n)|
 //! |`Vec`|O(1)|O(1)|O(1)*| |O(n)| |
 //!
+#[macro_use]
+extern crate serde_derive;
+extern crate serde;
 
 use std::io;
 use std::iter::FromIterator;
@@ -117,7 +120,7 @@ use std::ops::Index;
 /// predict the number of runs required in your `RleVec`, it is recommended to use
 /// `RleVec::with_capacity` whenever possible to specify how many runs the `RleVec` is expected
 /// to store.
-#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
 pub struct RleVec<T> {
     runs: Vec<InternalRun<T>>,
 }
@@ -143,7 +146,7 @@ pub struct Run<T> {
     pub value: T,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
 struct InternalRun<T> {
     end: usize,
     value: T,
