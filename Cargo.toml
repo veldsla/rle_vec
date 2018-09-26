@@ -4,6 +4,7 @@ version = "0.4.0" # remember to update html_root_url
 authors = ["Arno Velds <avelds@gmail.com>", "Kerollmops <renault.cle@gmail.com>"]
 repository = "https://github.com/veldsla/rle_vec"
 homepage = "https://github.com/veldsla/rle_vec"
+readme = "README.md"
 documentation = "https://docs.rs/rle_vec/"
 keywords = ["rle", "vec", "vector", "rlevec"]
 categories = ["data-structures"]
