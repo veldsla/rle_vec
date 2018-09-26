@@ -1,6 +1,10 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## [0.4.0] - 2018-9-26
+### Feature
+* Make Serde an optional feature. It take quite some time to compile which is not always necessary.
+
 ## [0.3.1] - 2017-10-27
 ### Fixed
 * Really use Serde as was promised in 0.3

@@ -1,6 +1,6 @@
 [package]
 name = "rle_vec"
-version = "0.3.1" # remember to update html_root_url
+version = "0.4.0" # remember to update html_root_url
 authors = ["Arno Velds <avelds@gmail.com>", "Kerollmops <renault.cle@gmail.com>"]
 repository = "https://github.com/veldsla/rle_vec"
 homepage = "https://github.com/veldsla/rle_vec"
@@ -12,6 +12,9 @@ description = """
 A vector like struct that stores data as runs of identical values. Useful for storing sparse data.
 """
 
+[features]
+serialize = ["serde", "serde_derive"]
+
 [dependencies]
-serde = "1.0"
-serde_derive = "1.0"
+serde_derive = { version="1.0", optional=true }
+serde = { version="1.0", optional=true }
