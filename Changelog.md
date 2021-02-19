@@ -1,6 +1,11 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## [0.4.1] - 2020-2-19
+### Cosmetic changes
+* Updated README
+* Fixed clippy lints
+
 ## [0.4.0] - 2018-9-26
 ### Feature
 * Make Serde an optional feature. It take quite some time to compile which is not always necessary.

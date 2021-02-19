@@ -1,4 +1,4 @@
-#![doc(html_root_url = "https://docs.rs/rle_vec/0.4.0")]
+#![doc(html_root_url = "https://docs.rs/rle_vec/0.4.1")]
 
 //! This crate provides `RleVec`, a vector like structure that stores runs of identical values coded
 //! by the value and the number of repeats.
@@ -541,10 +541,10 @@ impl<T: Eq + Clone> RleVec<T> {
                 if self.runs[p - 1].value == value {
                     self.runs[p - 1].end += 1;
                 } else {
-                    self.runs.insert(p, InternalRun { value: value, end: start });
+                    self.runs.insert(p, InternalRun { value, end: start });
                 }
             } else {
-                self.runs.insert(0, InternalRun { value: value, end: 0 });
+                self.runs.insert(0, InternalRun { value, end: 0 });
             }
         } else if index == end {
             // decrease current run length
@@ -553,7 +553,7 @@ impl<T: Eq + Clone> RleVec<T> {
             // compare to next run
             if p < self.runs.len() - 1 && self.runs[p + 1].value == value {
             } else {
-                self.runs.insert(p + 1, InternalRun {value: value, end: end});
+                self.runs.insert(p + 1, InternalRun { value, end });
             }
         } else {
             // split current run
@@ -561,8 +561,8 @@ impl<T: Eq + Clone> RleVec<T> {
             let v = self.runs[p].value.clone();
             // this might be more efficient using split_off, push and extend?
             // this implementation has complexity O((log n) + 2n)
-            self.runs.insert(p + 1, InternalRun { value: value, end: index });
-            self.runs.insert(p + 2, InternalRun { value: v, end: end });
+            self.runs.insert(p + 1, InternalRun { value, end: index });
+            self.runs.insert(p + 2, InternalRun { value: v, end });
         }
     }
 
@@ -737,14 +737,14 @@ impl<T: Eq> Extend<T> for RleVec<T> {
                 run.end = end;
                 run
             } else {
-                InternalRun { value: next_value, end: end }
+                InternalRun { value: next_value, end }
             };
 
             for value in iter {
                 if value != rle_last.value {
                     let next_end = rle_last.end;
                     self.runs.push(rle_last);
-                    rle_last = InternalRun { value: value, end: next_end };
+                    rle_last = InternalRun { value, end: next_end };
                 }
                 rle_last.end += 1;
             }
