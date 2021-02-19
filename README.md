@@ -29,6 +29,7 @@ and this to your crate root:
 ```rust
 extern crate rle_vec;
 ```
+
 ## Examples:
 ```rust
 use rle_vec::RleVec;
@@ -81,6 +82,15 @@ assert_eq!(v, vec![0, 2, 0, 1, 4, 1, 1, 1, 2, 2, 3]);
 
 Not all methods implemented on `Vec` are implemented for `RleVec`. All methods returning a slice
 cannot work for `RleVec`.
+
+## Serialization
+[Serde](https://serde.rs/) support for serialization is available as a cargo
+feature. You can specify the feature in the `Cargo.toml` `dependencies`
+section.
+```
+[dependencies]
+rle_vec = { version = "0.4.0", features = ["serialize"] }
+```
 
 ## Intended use
  * Allocate gigantic vectors with a starting value and (randomly) update
